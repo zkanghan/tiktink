@@ -2,13 +2,14 @@ package logger
 
 import (
 	"os"
+	"tiktink/pkg/tracer"
 
 	"github.com/natefinch/lumberjack"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-var L *zap.Logger
+var l *zap.Logger
 
 func InitLogger() {
 	var coreArr []zapcore.Core
@@ -50,6 +51,16 @@ func InitLogger() {
 
 	coreArr = append(coreArr, infoFileCore)
 	coreArr = append(coreArr, errorFileCore)
-	L = zap.New(zapcore.NewTee(coreArr...), zap.AddCaller()) //logger.AddCaller()为显示文件名和行号，可省略
+	l = zap.New(zapcore.NewTee(coreArr...), zap.AddCaller()) //logger.AddCaller()为显示文件名和行号，可省略
 
+}
+
+func PrintLogWithCTX(errorMsg string, err error, ctx *tracer.TraceCtx) {
+	errorMsg += "  "
+	l.Error(errorMsg, zap.Error(err), zap.String("TracePath", ctx.ToString()))
+}
+
+func PrintLog(errorMsg string, err error) {
+	errorMsg += "  "
+	l.Error(errorMsg, zap.Error(err))
 }

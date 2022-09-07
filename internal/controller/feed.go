@@ -8,9 +8,8 @@ import (
 	"tiktink/internal/model"
 	"tiktink/pkg/jwt"
 	"tiktink/pkg/logger"
+	"tiktink/pkg/tracer"
 	"time"
-
-	"go.uber.org/zap"
 
 	"github.com/gin-gonic/gin"
 )
@@ -34,7 +33,7 @@ func Feed(c *gin.Context) {
 		mc, valid, err := jwt.ParseToken(req.Token)
 		if err != nil {
 			badFeedResp(c, http.StatusInternalServerError, code.ServeBusy)
-			logger.L.Error("解析token错误：", zap.Error(err))
+			logger.PrintLog("解析token错误:", err)
 			return
 		}
 		if !valid { //token不合法直接返回响应
@@ -53,19 +52,20 @@ func Feed(c *gin.Context) {
 	var nextTime time.Time
 	var videoList []*model.VideoMSG
 	var err error
+	background := tracer.Background().TraceCaller()
 	switch userLogin {
 	case true:
 		userID := c.GetInt64(middleware.CtxUserIDtxKey)
-		videoList, nextTime, err = logic.GetFeed(&userID, latestTime)
+		videoList, nextTime, err = logic.NewFeedDealer(background.Clear().TraceCaller()).GetFeed(&userID, latestTime)
 		if err != nil {
-			logger.L.Error("获取视频流错误：", zap.Error(err))
+			logger.PrintLogWithCTX("获取视频流错误:", err, background)
 			badFeedResp(c, http.StatusInternalServerError, code.ServeBusy)
 			return
 		}
 	case false:
-		videoList, nextTime, err = logic.GetFeed(nil, time.Now().Unix())
+		videoList, nextTime, err = logic.NewFeedDealer(background.Clear().TraceCaller()).GetFeed(nil, time.Now().Unix())
 		if err != nil {
-			logger.L.Error("获取视频流错误：", zap.Error(err))
+			logger.PrintLogWithCTX("获取视频流错误:", err, background)
 			badFeedResp(c, http.StatusInternalServerError, code.ServeBusy)
 			return
 		}

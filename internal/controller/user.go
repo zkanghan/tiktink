@@ -8,9 +8,9 @@ import (
 	"tiktink/internal/model"
 	"tiktink/pkg/jwt"
 	"tiktink/pkg/logger"
+	"tiktink/pkg/tracer"
 
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 )
 
 func badLoginResponse(c *gin.Context, code code.ResCode, Msg string) {
@@ -36,7 +36,8 @@ func UserLogin(c *gin.Context) {
 		return
 	}
 	//  查询数据库验证账号
-	right, id, err := logic.CheckUser(user.UserName, user.Password)
+	background := tracer.Background().TraceCaller()
+	right, id, err := logic.NewUserDealer(background).CheckUser(user.UserName, user.Password)
 	if err != nil { //运行异常
 		badLoginResponse(c, code.ServeBusy, err.Error())
 		return
@@ -48,7 +49,7 @@ func UserLogin(c *gin.Context) {
 
 	token, err := jwt.GenToken(id, user.UserName)
 	if err != nil {
-		logger.L.Error("生成token错误：", zap.Error(err))
+		logger.PrintLog("生成token错误:", err)
 		badLoginResponse(c, code.ServeBusy, code.ServeBusy.MSG())
 		return
 	}
@@ -66,12 +67,12 @@ func UserRegister(c *gin.Context) {
 	user := &model.UserRequest{}
 	if err := c.ShouldBind(user); err != nil {
 		badRegisterResponse(c, code.InvalidParam, code.InvalidParam.MSG())
-		logger.L.Info("用户参数绑定出错：", zap.Error(err))
 		return
 	}
-	userExit, err := logic.GetUserExistByName(user.UserName)
+	background := tracer.Background().TraceCaller()
+	userExit, err := logic.NewUserDealer(background).GetUserExistByName(user.UserName)
 	if err != nil {
-		logger.L.Error("查询用户存在出错：", zap.Error(err))
+		logger.PrintLogWithCTX("查询用户存在出错:", err, background)
 		badRegisterResponse(c, code.ServeBusy, code.ServeBusy.MSG())
 		return
 	}
@@ -79,9 +80,9 @@ func UserRegister(c *gin.Context) {
 		badRegisterResponse(c, code.UserExist, code.UserExist.MSG())
 		return
 	}
-	id, err := logic.CreateUser(user.UserName, user.Password)
+	id, err := logic.NewUserDealer(background.Clear().TraceCaller()).CreateUser(user.UserName, user.Password)
 	if err != nil {
-		logger.L.Error("创建用户出错：", zap.Error(err))
+		logger.PrintLogWithCTX("创建用户出错", err, background)
 		badRegisterResponse(c, code.ServeBusy, code.ServeBusy.MSG())
 		return
 	}
@@ -106,9 +107,10 @@ func UserInformation(c *gin.Context) {
 		badUserInfoResp(c, code.InvalidParam)
 		return
 	}
-	userExist, err := logic.GetUserExistByID(req.UserID)
+	background := tracer.Background().TraceCaller()
+	userExist, err := logic.NewUserDealer(background).GetUserExistByID(req.UserID)
 	if err != nil {
-		logger.L.Error("查询用户是否存在失败：", zap.Error(err))
+		logger.PrintLogWithCTX("查询用户是否存在失败:", err, background)
 		badUserInfoResp(c, code.ServeBusy)
 		return
 	}
@@ -117,9 +119,10 @@ func UserInformation(c *gin.Context) {
 		return
 	}
 	userID := c.GetInt64(middleware.CtxUserIDtxKey)
-	userMsg, err := logic.GetUserInformation(req.UserID, userID)
+	userMsg, err := logic.NewUserDealer(background.Clear().TraceCaller()).GetUserInformation(req.UserID, userID)
 	if err != nil {
 		badUserInfoResp(c, code.ServeBusy)
+		logger.PrintLogWithCTX("查询用户信息错误：", err, background)
 		return
 	}
 	c.JSON(http.StatusOK, model.UserInfoResponse{

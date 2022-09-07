@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"tiktink/internal/model"
+	"tiktink/pkg/tracer"
 
 	"gorm.io/gorm"
 )
@@ -14,9 +15,11 @@ type favoriteFunc interface {
 }
 
 type favoriteDealer struct {
+	Context *tracer.TraceCtx
 }
 
-func (f favoriteDealer) QueryFavoriteList(userID int64) ([]*model.VideoMSG, error) {
+func (f *favoriteDealer) QueryFavoriteList(userID int64) ([]*model.VideoMSG, error) {
+	f.Context.TraceCaller()
 	var videoMsgs []*model.VideoMSG
 	err := db.Raw("SELECT `video_id`,`user_id`,`user_name`,`follow_count`,`follower_count`,`play_url`,`cover_url`,`favorite_count`,`comment_count`,`title` "+
 		"FROM `users` INNER JOIN `videos` "+
@@ -28,7 +31,8 @@ func (f favoriteDealer) QueryFavoriteList(userID int64) ([]*model.VideoMSG, erro
 	return videoMsgs, nil
 }
 
-func (f favoriteDealer) CancelFavorite(authorID int64, videoID int64) error {
+func (f *favoriteDealer) CancelFavorite(authorID int64, videoID int64) error {
+	f.Context.TraceCaller()
 	return db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("user_id = ? and video_id = ?", authorID, videoID).Delete(&model.Favorite{}).Error; err != nil {
 			return err
@@ -40,7 +44,8 @@ func (f favoriteDealer) CancelFavorite(authorID int64, videoID int64) error {
 	})
 }
 
-func (f favoriteDealer) DoFavorite(authorID int64, videoID int64) error {
+func (f *favoriteDealer) DoFavorite(authorID int64, videoID int64) error {
+	f.Context.TraceCaller()
 	favoriteModel := &model.Favorite{
 		VideoID: videoID,
 		UserID:  authorID,
@@ -56,12 +61,15 @@ func (f favoriteDealer) DoFavorite(authorID int64, videoID int64) error {
 	})
 }
 
-func (f favoriteDealer) QueryIsLiked(authorID int64, videoId int64) (bool, error) {
+func (f *favoriteDealer) QueryIsLiked(authorID int64, videoId int64) (bool, error) {
+	f.Context.TraceCaller()
 	res := new(int8)
 	err := db.Raw("select 1 from favorites where user_id = ? and video_id = ? limit 1", authorID, videoId).Scan(res).Error
 	return *res == 1, err
 }
 
-func DealFavorite() favoriteFunc {
-	return &favoriteDealer{}
+func NewFavoriteDealer(ctx *tracer.TraceCtx) favoriteFunc {
+	return &favoriteDealer{
+		Context: ctx,
+	}
 }

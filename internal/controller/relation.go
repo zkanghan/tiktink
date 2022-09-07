@@ -8,8 +8,7 @@ import (
 	"tiktink/internal/model"
 	"tiktink/internal/response"
 	"tiktink/pkg/logger"
-
-	"go.uber.org/zap"
+	"tiktink/pkg/tracer"
 
 	"github.com/gin-gonic/gin"
 )
@@ -31,11 +30,13 @@ func RelationAction(c *gin.Context) {
 		response.Error(c, http.StatusBadRequest, code.FollowSelf)
 		return
 	}
+	background := tracer.Background().TraceCaller()
+
 	//  若关注的对象不存在
-	toUserExist, err := logic.GetUserExistByID(req.ToUserID)
+	toUserExist, err := logic.NewUserDealer(background).GetUserExistByID(req.ToUserID)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, code.ServeBusy)
-		logger.L.Error("查询用户是否存在失败：", zap.Error(err))
+		logger.PrintLogWithCTX("查询用户是否存在失败:", err, background)
 		return
 	}
 	if toUserExist == false {
@@ -43,10 +44,10 @@ func RelationAction(c *gin.Context) {
 		return
 	}
 	//  若用户正常使用，是无法做出重复关注或重复取消关注操作的，对这类请求直接返回操作失败即可
-	isFollowed, err := logic.GetIsFollowed(userID, req.ToUserID)
+	isFollowed, err := logic.NewRelationDealer(background.Clear().TraceCaller()).GetIsFollowed(userID, req.ToUserID)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, code.ServeBusy)
-		logger.L.Error("查询社交是否关注失败：", zap.Error(err))
+		logger.PrintLogWithCTX("查询用户是否关注失败:", err, background)
 		return
 	}
 	if req.ActionType == doFollow {
@@ -56,9 +57,9 @@ func RelationAction(c *gin.Context) {
 			return
 		}
 		//真正进行关注操作
-		if err := logic.DoFollow(userID, req.ToUserID); err != nil {
+		if err := logic.NewRelationDealer(background.Clear().TraceCaller()).DoFollow(userID, req.ToUserID); err != nil {
 			response.Error(c, http.StatusInternalServerError, code.ServeBusy)
-			logger.L.Error("关注用户操作失败：", zap.Error(err))
+			logger.PrintLogWithCTX("关注用户操作失败:", err, background)
 			return
 		}
 		c.JSON(http.StatusOK, &response.RESP{
@@ -72,9 +73,9 @@ func RelationAction(c *gin.Context) {
 			return
 		}
 		//真正进行取消关注操作
-		if err := logic.DoCancelFollow(userID, req.ToUserID); err != nil {
+		if err := logic.NewRelationDealer(background.Clear().TraceCaller()).DoCancelFollow(userID, req.ToUserID); err != nil {
 			response.Error(c, http.StatusInternalServerError, code.ServeBusy)
-			logger.L.Error("取消关注用户操作失败：", zap.Error(err))
+			logger.PrintLogWithCTX("取消关注用户操作失败:", err, background)
 			return
 		}
 		c.JSON(http.StatusOK, &response.RESP{
@@ -100,11 +101,12 @@ func FollowList(c *gin.Context) {
 		badFollowResponse(c, code.InvalidParam)
 		return
 	}
+	background := tracer.Background().TraceCaller()
 
-	userExist, err := logic.GetUserExistByID(req.UserID)
+	userExist, err := logic.NewUserDealer(background).GetUserExistByID(req.UserID)
 	if err != nil {
 		badFollowResponse(c, code.ServeBusy)
-		logger.L.Error("查询用户是否存在失败", zap.Error(err))
+		logger.PrintLogWithCTX("查询用户是否存在失败", err, background)
 		return
 	}
 	if !userExist {
@@ -113,10 +115,10 @@ func FollowList(c *gin.Context) {
 	}
 	// 下面开始查询列表，获取账号主人的ID
 	aUserID := c.GetInt64(middleware.CtxUserIDtxKey)
-	userMSG, err := logic.GetFollowList(aUserID, req)
+	userMSG, err := logic.NewRelationDealer(background.Clear().TraceCaller()).GetFollowList(aUserID, req)
 	if err != nil {
 		badFollowResponse(c, code.ServeBusy)
-		logger.L.Error("查询关注列表出错：", zap.Error(err))
+		logger.PrintLogWithCTX("查询关注列表出错:", err, background)
 		return
 	}
 	c.JSON(http.StatusOK, &model.FollowListResp{
@@ -132,10 +134,12 @@ func FansList(c *gin.Context) {
 		badFollowResponse(c, code.InvalidParam)
 		return
 	}
-	userExist, err := logic.GetUserExistByID(req.UserID)
+	background := tracer.Background().TraceCaller()
+
+	userExist, err := logic.NewUserDealer(background).GetUserExistByID(req.UserID)
 	if err != nil {
 		badFollowResponse(c, code.ServeBusy)
-		zap.L().Error("查询用户是否存在失败", zap.Error(err))
+		logger.PrintLogWithCTX("查询用户是否存在失败", err, background)
 		return
 	}
 	if !userExist {
@@ -144,10 +148,10 @@ func FansList(c *gin.Context) {
 	}
 	// 下面开始查询粉丝列表，获取账号主人的ID
 	aUserID := c.GetInt64(middleware.CtxUserIDtxKey)
-	userMSG, err := logic.GetFansList(aUserID, req)
+	userMSG, err := logic.NewRelationDealer(background.Clear().TraceCaller()).GetFansList(aUserID, req)
 	if err != nil {
 		badFollowResponse(c, code.ServeBusy)
-		zap.L().Error("查询关粉丝列表出错：", zap.Error(err))
+		logger.PrintLogWithCTX("查询关粉丝列表出错:", err, background)
 		return
 	}
 	c.JSON(http.StatusOK, &model.FollowListResp{

@@ -7,8 +7,7 @@ import (
 	"tiktink/internal/middleware"
 	"tiktink/internal/model"
 	"tiktink/pkg/logger"
-
-	"go.uber.org/zap"
+	"tiktink/pkg/tracer"
 
 	"github.com/gin-gonic/gin"
 )
@@ -39,10 +38,12 @@ func CommentAction(c *gin.Context) {
 		badCommentActionResp(c, code.InvalidParam)
 		return
 	}
+	backgroundCTX := tracer.Background().TraceCaller() //新建上下文并追踪本函数
 	//  根据视频id判断视频是否存在
-	videoExist, err := logic.GetIsVideoExist(req.VideoID)
+
+	videoExist, err := logic.NewVideoDealer(backgroundCTX).GetIsVideoExist(req.VideoID)
 	if err != nil {
-		logger.L.Error("查询视频存在失败：", zap.Error(err))
+		logger.PrintLogWithCTX("查询视频失败:", err, backgroundCTX)
 		badCommentActionResp(c, code.ServeBusy)
 		return
 	}
@@ -53,14 +54,15 @@ func CommentAction(c *gin.Context) {
 	userID := c.GetInt64(middleware.CtxUserIDtxKey)
 	switch req.ActionType {
 	case releaseComment:
-		if req.CommentText == "" {
+		if req.CommentText == "" { //empty comment
 			badCommentActionResp(c, code.InvalidParam)
 			return
 		}
-		commentMsg, err := logic.ReleaseComment(req, userID)
+
+		commentMsg, err := logic.NewCommentDealer(backgroundCTX.Clear().TraceCaller()).ReleaseComment(req, userID)
 		if err != nil {
 			badCommentActionResp(c, code.ServeBusy)
-			logger.L.Error("发布评论失败：", zap.Error(err))
+			logger.PrintLogWithCTX("发布评论失败:", err, backgroundCTX)
 			return
 		}
 		c.JSON(http.StatusOK, &model.CommentActionResp{
@@ -70,10 +72,10 @@ func CommentAction(c *gin.Context) {
 		})
 
 	case deleteComment:
-		deleteSuccess, err := logic.DeleteComment(req.VideoID, req.CommentID, userID)
+		deleteSuccess, err := logic.NewCommentDealer(backgroundCTX.Clear().TraceCaller()).DeleteComment(req.VideoID, req.CommentID, userID)
 		if err != nil {
 			badCommentActionResp(c, code.ServeBusy)
-			logger.L.Error("删除评论失败：", zap.Error(err))
+			logger.PrintLogWithCTX("删除评论失败:", err, backgroundCTX)
 			return
 		}
 		if !deleteSuccess {
@@ -96,11 +98,13 @@ func CommentList(c *gin.Context) {
 		badCommentListResp(c, code.InvalidParam)
 		return
 	}
+	background := tracer.Background().TraceCaller() //  new context message
+
 	userID := c.GetInt64(middleware.CtxUserIDtxKey)
-	commentList, err := logic.GetCommentList(req.VideoID, userID)
+	commentList, err := logic.NewCommentDealer(background).GetCommentList(req.VideoID, userID)
 	if err != nil {
 		badCommentListResp(c, code.ServeBusy)
-		logger.L.Error("获取评论列表失败：", zap.Error(err))
+		logger.PrintLogWithCTX("获取评论列表失败:", err, background)
 		return
 	}
 	c.JSON(http.StatusOK, model.CommentListResp{

@@ -57,8 +57,7 @@ func ParseToken(tokenString string) (*MyClaims, bool, error) {
 	//keyFunc 用来根据token值返回密钥
 	token, err := jwt.ParseWithClaims(tokenString, claims, keyFunc)
 	if err != nil { //解析过程出错
-		logger.L.Error("入参：{}|解析token错误：")
-
+		logger.PrintLog("解析token错误:", err)
 		return nil, false, err
 	}
 	if token.Valid { // 校验token是否合法

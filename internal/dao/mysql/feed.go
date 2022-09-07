@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"tiktink/internal/model"
+	"tiktink/pkg/tracer"
 	"time"
 )
 
@@ -11,9 +12,11 @@ type feedFunc interface {
 }
 
 type feedDealer struct {
+	Context *tracer.TraceCtx
 }
 
-func (f feedDealer) QueryLatestTimeByID(videoID int64) (time.Time, error) {
+func (f *feedDealer) QueryLatestTimeByID(videoID int64) (time.Time, error) {
+	f.Context.TraceCaller()
 	var latestTime time.Time
 	err := db.Raw("select `create_time` from `videos` where video_id = ?", videoID).Scan(&latestTime).Error
 	if err != nil {
@@ -23,7 +26,8 @@ func (f feedDealer) QueryLatestTimeByID(videoID int64) (time.Time, error) {
 }
 
 // QueryFeedWithTime 按视频发布时间从新到久排序
-func (f feedDealer) QueryFeedWithTime(latestTime string) ([]*model.VideoMSG, error) {
+func (f *feedDealer) QueryFeedWithTime(latestTime string) ([]*model.VideoMSG, error) {
+	f.Context.TraceCaller()
 	var videoMsgs []*model.VideoMSG
 	err := db.Raw("select `video_id`,`play_url`,`cover_url`,`favorite_count`,`comment_count`,`title`,"+
 		"`user_id`,`user_name`,`follow_count`,`follower_count`"+
@@ -35,6 +39,8 @@ func (f feedDealer) QueryFeedWithTime(latestTime string) ([]*model.VideoMSG, err
 	return videoMsgs, nil
 }
 
-func DealFeed() feedFunc {
-	return &feedDealer{}
+func NewFeedDealer(ctx *tracer.TraceCtx) feedFunc {
+	return &feedDealer{
+		Context: ctx,
+	}
 }

@@ -12,7 +12,7 @@ import (
 
 var db *gorm.DB
 
-func Init() (err error) {
+func InitMysql() (err error) {
 	//  狠狠的吃亏了，数据库时区没有设置
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		viper.GetString("mysql.user"),

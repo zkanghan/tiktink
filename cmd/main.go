@@ -32,7 +32,7 @@ func init() {
 	logger.InitLogger() //初始化日志
 
 	//MySQL配置初始化
-	if err := mysql.Init(); err != nil {
+	if err := mysql.InitMysql(); err != nil {
 		panic("数据库初始化出错:  " + err.Error())
 	}
 
@@ -40,9 +40,3 @@ func init() {
 		panic("雪花id生成器初始化出错：" + err.Error())
 	}
 }
-
-//# Go workspace file
-//go.work
-//
-//.idea
-//

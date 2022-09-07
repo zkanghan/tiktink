@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"tiktink/internal/model"
+	"tiktink/pkg/tracer"
 
 	"gorm.io/gorm"
 )
@@ -13,9 +14,11 @@ type commentFunc interface {
 }
 
 type commentDealer struct {
+	Context *tracer.TraceCtx
 }
 
-func (c commentDealer) QueryCommentList(videoID int64) ([]*model.CommentMSG, error) {
+func (c *commentDealer) QueryCommentList(videoID int64) ([]*model.CommentMSG, error) {
+	c.Context.TraceCaller()
 	var commentMsg []*model.CommentMSG
 	err := db.Raw("select `user_id`,`user_name`,`follow_count`,`follower_count`,`comment_id`,"+
 		"`content`,`comments`.`create_date`"+
@@ -28,7 +31,8 @@ func (c commentDealer) QueryCommentList(videoID int64) ([]*model.CommentMSG, err
 }
 
 // DeleteComment 只有评论的所有者可以删除评论，userID加了一层校验  返回受影响的行数
-func (c commentDealer) DeleteComment(videoID int64, CommentID int64, userID int64) (int64, error) {
+func (c *commentDealer) DeleteComment(videoID int64, CommentID int64, userID int64) (int64, error) {
+	c.Context.TraceCaller()
 	var todoDB *gorm.DB
 	err := db.Transaction(func(tx *gorm.DB) error {
 		todoDB = tx.Where("comment_id = ? and author_id = ? and video_id = ?", CommentID, userID, videoID).Delete(&model.Comment{})
@@ -49,7 +53,8 @@ func (c commentDealer) DeleteComment(videoID int64, CommentID int64, userID int6
 	return todoDB.RowsAffected, nil
 }
 
-func (c commentDealer) CreateComment(videoID int64, userID int64, content string) (*model.Comment, error) {
+func (c *commentDealer) CreateComment(videoID int64, userID int64, content string) (*model.Comment, error) {
+	c.Context.TraceCaller()
 	comment := &model.Comment{
 		VideoID:  videoID,
 		AuthorID: userID,
@@ -74,6 +79,8 @@ func (c commentDealer) CreateComment(videoID int64, userID int64, content string
 	return comment, nil
 }
 
-func DealComment() commentFunc {
-	return &commentDealer{}
+func NewCommentDealer(ctx *tracer.TraceCtx) commentFunc {
+	return &commentDealer{
+		Context: ctx,
+	}
 }
