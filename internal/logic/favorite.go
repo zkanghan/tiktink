@@ -3,6 +3,7 @@ package logic
 import (
 	"tiktink/internal/dao/mysql"
 	"tiktink/internal/model"
+	"tiktink/pkg/tools"
 	"tiktink/pkg/tracer"
 )
 
@@ -43,19 +44,24 @@ func (f *favoriteDealer) GetFavoriteList(userID int64) ([]*model.VideoMSG, error
 		return nil, err
 	}
 
-	//  todo: 把循环去掉改为一次查询
+	// 获取需要的用户id
+	var toUserIDs []int64
+	for _, video := range videoMsgS {
+		toUserIDs = append(toUserIDs, video.UserMSG.UserID)
+	}
+	//  获取user在toUserID中关注了哪些
+	followedUsers, err := mysql.NewRelationDealer(f.Context).QueryListIsFollow(userID, toUserIDs)
+	if err != nil {
+		return []*model.VideoMSG{}, err
+	}
+	followedUserMap := tools.SliceIntToSet(followedUsers)
+
+	//  todo: 把循环去掉改为一次查询,这里dao的favorite也要重构
 
 	for _, videoMsg := range videoMsgS {
-		followed, err := mysql.NewRelationDealer(f.Context).QueryIsFollow(userID, videoMsg.UserMSG.ID)
-		if err != nil {
-			return nil, err
-		}
-		liked, err := mysql.NewFavoriteDealer(f.Context).QueryIsLiked(userID, videoMsg.ID)
-		if err != nil {
-			return nil, err
-		}
+		_, followed := followedUserMap[videoMsg.UserMSG.UserID]
 		videoMsg.UserMSG.IsFollow = followed
-		videoMsg.IsFavorite = liked
+		videoMsg.IsFavorite = true
 	}
 	return videoMsgS, nil
 }

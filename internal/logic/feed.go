@@ -3,6 +3,7 @@ package logic
 import (
 	"tiktink/internal/dao/mysql"
 	"tiktink/internal/model"
+	"tiktink/pkg/tools"
 	"tiktink/pkg/tracer"
 	"time"
 )
@@ -38,18 +39,30 @@ func (f *feedDealer) GetFeed(userID *int64, latestTime int64) ([]*model.VideoMSG
 	}
 	// 判断是否关注和点赞
 	if userID != nil {
-		//  todo: 把循环去掉改为一次查询
-
+		// 组装视频列表的作者id和视频id
+		var toUsersIDs, videoIDs []int64
 		for _, video := range videoList {
-			followed, err := mysql.NewRelationDealer(f.Context).QueryIsFollow(*userID, video.UserMSG.ID)
-			if err != nil {
-				return nil, time.Now(), err
-			}
-			liked, err := mysql.NewFavoriteDealer(f.Context).QueryIsLiked(*userID, video.ID)
-			if err != nil {
-				return nil, time.Now(), err
-			}
-			video.UserMSG.IsFollow = followed
+			toUsersIDs = append(toUsersIDs, video.UserMSG.UserID)
+			videoIDs = append(videoIDs, video.VideoID)
+		}
+		//  查询作者id中有哪些user关注了的
+		followedUsers, err := mysql.NewRelationDealer(f.Context).QueryListIsFollow(*userID, toUsersIDs)
+		if err != nil {
+			return []*model.VideoMSG{}, time.Now(), err
+		}
+		// 查询视频id中有哪些user点赞了
+		likedVideos, err := mysql.NewFavoriteDealer(f.Context).QueryListIsLiked(*userID, videoIDs)
+		if err != nil {
+			return []*model.VideoMSG{}, time.Now(), err
+		}
+		//  切片转map便于查询
+		followedUsersMap := tools.SliceIntToSet(followedUsers)
+		likedVideosMap := tools.SliceIntToSet(likedVideos)
+		//  逻辑判断是否关注/点赞
+		for _, video := range videoList {
+			_, followed := followedUsersMap[video.UserMSG.UserID]
+			_, liked := likedVideosMap[video.VideoID]
+			video.IsFollow = followed
 			video.IsFavorite = liked
 		}
 	} else {
@@ -61,7 +74,7 @@ func (f *feedDealer) GetFeed(userID *int64, latestTime int64) ([]*model.VideoMSG
 
 	//  获得本次视频列表中发布时间最早的
 	index := len(videoList)
-	newLatestTime, err := mysql.NewFeedDealer(f.Context).QueryLatestTimeByID(videoList[index-1].ID)
+	newLatestTime, err := mysql.NewFeedDealer(f.Context).QueryLatestTimeByID(videoList[index-1].VideoID)
 	if err != nil {
 		return nil, time.Now(), err
 	}

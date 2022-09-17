@@ -21,6 +21,7 @@ type followFunc interface {
 	DoCancelFollow(UserID int64, ToUserID int64) error
 	QueryFollowList(req *model.FollowListReq) ([]*model.UserMSG, error)
 	QueryFansList(req *model.FollowListReq) ([]*model.UserMSG, error)
+	QueryListIsFollow(userID int64, toUsers []int64) ([]int64, error)
 }
 
 type followDealer struct {
@@ -32,10 +33,8 @@ func (f *followDealer) QueryFansList(req *model.FollowListReq) ([]*model.UserMSG
 	userMSGs := new([]*model.UserMSG)
 	begin := (req.PageCount - 1) * pageRows //展示记录的起点
 	end := pageRows                         //展示记录的终点
-	err := db.Raw("SELECT `users`.user_id`,`user_name`,`follow_count`,`follower_count`FROM `users`"+
-		"WHERE `users`.`id` "+
-		"IN (SELECT `user_id` FROM `follow` WHERE `follow`.`to_user_id` = ?) "+
-		"LIMIT ?,?", req.UserID, begin, end).Scan(userMSGs).Error
+	err := db.Raw("SELECT `users`.`user_id`,`user_name`,`follow_count`,`follower_count` from `users` WHERE `users`.`user_id` IN (SELECT `user_id` FROM `follow` WHERE `follow`.`to_user_id` = ?) LIMIT ?,?",
+		req.UserID, begin, end).Scan(userMSGs).Error
 	if err != nil {
 		return nil, err
 	}
@@ -67,10 +66,10 @@ func (f *followDealer) DoFollow(UserID int64, ToUserID int64) error {
 		if err := tx.Create(followModel).Error; err != nil {
 			return err
 		}
-		if err := tx.Exec("update users set follow_count = follow_count+1 where id = ?", UserID).Error; err != nil {
+		if err := tx.Exec("update users set follow_count = follow_count+1 where user_id = ?", UserID).Error; err != nil {
 			return err
 		}
-		if err := tx.Exec("update users set follower_count = follower_count+1 where id = ?", ToUserID).Error; err != nil {
+		if err := tx.Exec("update users set follower_count = follower_count+1 where user_id = ?", ToUserID).Error; err != nil {
 			return err
 		}
 		return nil
@@ -84,11 +83,11 @@ func (f *followDealer) DoCancelFollow(UserID int64, ToUserID int64) error {
 			return err
 		}
 		//粉丝列表减少一位
-		if err := tx.Exec("update users set follower_count = follower_count-1 where id = ?", ToUserID).Error; err != nil {
+		if err := tx.Exec("update users set follower_count = follower_count-1 where user_id = ?", ToUserID).Error; err != nil {
 			return err
 		}
 		//关注列表减少一位
-		if err := tx.Exec("update users set follow_count = follow_count-1 where id = ?", UserID).Error; err != nil {
+		if err := tx.Exec("update users set follow_count = follow_count-1 where user_id = ?", UserID).Error; err != nil {
 			return err
 		}
 		return nil
@@ -100,4 +99,15 @@ func (f *followDealer) QueryIsFollow(UserID int64, ToUserID int64) (bool, error)
 	res := new(int8)
 	err := db.Raw("select 1 from follow where user_id = ? and to_user_id = ? limit 1", UserID, ToUserID).Scan(res).Error
 	return *res == 1, err
+}
+
+// QueryListIsFollow 返回toUsers中user关注的部分
+func (f *followDealer) QueryListIsFollow(userID int64, toUsers []int64) ([]int64, error) {
+	f.Context.TraceCaller()
+	var followedUsers []int64
+	err := db.Raw("select to_user_id from follow where user_id = ? and to_user_id in ?", userID, toUsers).Scan(&followedUsers).Error
+	if err != nil {
+		return []int64{}, nil
+	}
+	return followedUsers, nil
 }

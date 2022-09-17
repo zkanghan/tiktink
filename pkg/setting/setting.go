@@ -7,8 +7,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-func Init() (err error) {
-	viper.SetConfigFile("./config/config.yaml")
+func Init(path string) (err error) {
+	viper.SetConfigFile(path)
 	err = viper.ReadInConfig() // 查找并读取配置文件
 	if err != nil {            // 处理读取配置文件的错误
 		fmt.Printf("viper.ReadInConfig failed err:  %s", err)

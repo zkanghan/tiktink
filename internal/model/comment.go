@@ -7,11 +7,11 @@ import (
 
 // Comment 与数据库交互的结构体
 type Comment struct {
-	ID       int64     `gorm:"column:comment_id"`
-	AuthorID int64     `gorm:"column:author_id;not null"`
-	VideoID  int64     `gorm:"column:video_id;not null"`
-	Content  string    `gorm:"column:content;not null"`
-	CreateAt time.Time `gorm:"column:create_date;autoCreateTime;not null"`
+	CommentID int64     `gorm:"column:comment_id"`
+	AuthorID  int64     `gorm:"column:author_id;not null"`
+	VideoID   int64     `gorm:"column:video_id;not null"`
+	Content   string    `gorm:"column:content;not null"`
+	CreateAt  time.Time `gorm:"column:create_date;autoCreateTime;not null"`
 }
 
 func (Comment) TableName() string {

@@ -6,7 +6,7 @@ import (
 
 // User 与数据库交互的User模型
 type User struct {
-	ID       int64  `gorm:"column:user_id"`
+	UserID   int64  `gorm:"column:user_id"`
 	UserName string `gorm:"column:user_name;not null"`
 	Password string `gorm:"column:password;not null"`
 }
@@ -16,7 +16,7 @@ func (u User) TableName() string {
 }
 
 type UserMSG struct {
-	ID            int64  `json:"id" gorm:"column:user_id"`
+	UserID        int64  `json:"id" gorm:"column:user_id"`
 	Name          string `json:"name" gorm:"column:user_name"`
 	FollowCount   int64  `json:"follow_count" gorm:"column:follow_count"`
 	FollowerCount int64  `json:"follower_count" gorm:"column:follower_count"`

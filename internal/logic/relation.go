@@ -3,6 +3,7 @@ package logic
 import (
 	"tiktink/internal/dao/mysql"
 	"tiktink/internal/model"
+	"tiktink/pkg/tools"
 	"tiktink/pkg/tracer"
 )
 
@@ -48,15 +49,19 @@ func (r *relationDealer) GetFollowList(aUserID int64, req *model.FollowListReq) 
 	r.Context.TraceCaller()
 	userMSGs, err := mysql.NewRelationDealer(r.Context).QueryFollowList(req)
 	if err != nil {
-		return nil, err
+		return []*model.UserMSG{}, err
 	}
-	//  todo: 把循环去掉改为一次查询
-
+	// 组装用户ID切片
+	var toUserIDs []int64
+	for _, user := range userMSGs {
+		toUserIDs = append(toUserIDs, user.UserID)
+	}
+	//  查询user关注了切片中的哪些人
+	followedUserIDs, err := mysql.NewRelationDealer(r.Context).QueryListIsFollow(aUserID, toUserIDs)
+	//  切片转map便于判断
+	followedUserIDsMap := tools.SliceIntToSet(followedUserIDs)
 	for _, userMsg := range userMSGs {
-		followed, err := r.GetIsFollowed(aUserID, userMsg.ID)
-		if err != nil {
-			return nil, err
-		}
+		_, followed := followedUserIDsMap[userMsg.UserID]
 		userMsg.IsFollow = followed
 	}
 	return userMSGs, nil
@@ -66,15 +71,20 @@ func (r *relationDealer) GetFansList(aUserID int64, req *model.FollowListReq) ([
 	r.Context.TraceCaller()
 	userMSGs, err := mysql.NewRelationDealer(r.Context).QueryFansList(req)
 	if err != nil {
-		return nil, err
+		return []*model.UserMSG{}, err
 	}
-	//  todo: 把循环去掉改为一次查询
 
+	// 组装用户ID切片
+	var toUserIDs []int64
+	for _, user := range userMSGs {
+		toUserIDs = append(toUserIDs, user.UserID)
+	}
+	//  查询user关注了切片中的哪些人
+	followedUserIDs, err := mysql.NewRelationDealer(r.Context).QueryListIsFollow(aUserID, toUserIDs)
+	//  切片转map便于判断
+	followedUserIDsMap := tools.SliceIntToSet(followedUserIDs)
 	for _, userMsg := range userMSGs {
-		followed, err := r.GetIsFollowed(aUserID, userMsg.ID)
-		if err != nil {
-			return nil, err
-		}
+		_, followed := followedUserIDsMap[userMsg.UserID]
 		userMsg.IsFollow = followed
 	}
 	return userMSGs, nil

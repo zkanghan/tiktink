@@ -3,6 +3,7 @@ package logic
 import (
 	"tiktink/internal/dao/mysql"
 	"tiktink/internal/model"
+	"tiktink/pkg/tools"
 	"tiktink/pkg/tracer"
 )
 
@@ -39,7 +40,7 @@ func (c *commentDealer) ReleaseComment(req *model.CommentActionReq, userID int64
 	//  format the time
 	createDate := comment.CreateAt.Format("2006-01-02")
 	commentMsg := &model.CommentMSG{
-		CommentID:  comment.ID,
+		CommentID:  comment.CommentID,
 		UserMSG:    *userMsg,
 		Content:    comment.Content,
 		CreateDate: createDate,
@@ -58,6 +59,7 @@ func (c *commentDealer) DeleteComment(videoID int64, commentID int64, userID int
 	return affectRows > 0, nil
 }
 
+// TODO:限制一次查询的评论数
 func (c *commentDealer) GetCommentList(videoID int64, userID int64) ([]*model.CommentMSG, error) {
 	c.Context.TraceCaller()
 
@@ -65,12 +67,20 @@ func (c *commentDealer) GetCommentList(videoID int64, userID int64) ([]*model.Co
 	if err != nil {
 		return nil, err
 	}
-	//  todo: 把循环去掉改为一次查询
+
+	// 获取需要的用户id
+	var toUserIDs []int64
 	for _, comment := range commentMsgs {
-		followed, err := NewRelationDealer(c.Context).GetIsFollowed(userID, comment.UserMSG.ID)
-		if err != nil {
-			return nil, err
-		}
+		toUserIDs = append(toUserIDs, comment.UserID)
+	}
+	//  获取评论者在userID关注了哪些
+	followedUsers, err := mysql.NewRelationDealer(c.Context).QueryListIsFollow(userID, toUserIDs)
+	if err != nil {
+		return []*model.CommentMSG{}, err
+	}
+	set := tools.SliceIntToSet(followedUsers) //转化成map方便查询
+	for _, comment := range commentMsgs {
+		_, followed := set[comment.UserID] //存在该用户ID表示已关注
 		comment.UserMSG.IsFollow = followed
 		comment.CreateDate = comment.CreateDate[0:10]
 	}

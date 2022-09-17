@@ -8,6 +8,7 @@ import (
 	"tiktink/internal/dao/mysql"
 	"tiktink/internal/model"
 	"tiktink/pkg/snowid"
+	"tiktink/pkg/tools"
 	"tiktink/pkg/tracer"
 
 	ffmpeg "github.com/u2takey/ffmpeg-go"
@@ -89,9 +90,9 @@ func (v *videoDealer) PublishVideo(video *model.PublishVideoReq, userID int64) e
 		AuthorID: userID,
 		Title:    video.Title,
 		PlayURL:  videoURL,
-		VideoKey: videoID,
+		VideoID:  videoID,
 		CoverURL: coverURL,
-		ImageKey: coverID,
+		ImageID:  coverID,
 	}
 	err = mysql.NewVideoDealer(v.Context).PublishVideo(videoModel)
 	if err != nil {
@@ -106,25 +107,34 @@ func (v *videoDealer) GetIsVideoExist(videoID int64) (bool, error) {
 	return mysql.NewVideoDealer(v.Context).QueryVideoExist(videoID)
 }
 
-func (v *videoDealer) GetVideoList(userID int64, authorID int64) ([]*model.VideoMSG, error) {
+func (v *videoDealer) GetVideoList(currentUserID int64, authorID int64) ([]*model.VideoMSG, error) {
 	v.Context.TraceCaller()
 	videoMsgs, err := mysql.NewVideoDealer(v.Context).QueryVideoByAuthorID(authorID)
 	if err != nil {
-		return nil, err
+		return []*model.VideoMSG{}, err
 	}
 	//  todo: 把循环去掉改为一次查询
-
+	// 组装视频id切片
+	var videoIDs []int64
 	for _, video := range videoMsgs {
-		followed, err := NewRelationDealer(v.Context).GetIsFollowed(userID, authorID)
-		if err != nil {
-			return nil, err
-		}
-		liked, err := NewFavoriteDealer(v.Context).GetIsLiked(userID, video.ID)
-		if err != nil {
-			return nil, err
-		}
-		video.IsFollow = followed
+		videoIDs = append(videoIDs, video.VideoID)
+	}
+	//  查询当前用户是否点赞了哪些视频列表中的视频
+	likedVideoIDs, err := mysql.NewFavoriteDealer(v.Context).QueryListIsLiked(currentUserID, videoIDs)
+	if err != nil {
+		return []*model.VideoMSG{}, err
+	}
+	// 转map便于查询
+	likedVideoIDsMap := tools.SliceIntToSet(likedVideoIDs)
+	// 判断当前用户是否关注视频作者
+	followed, err := NewRelationDealer(v.Context).GetIsFollowed(currentUserID, authorID)
+	if err != nil {
+		return []*model.VideoMSG{}, err
+	}
+	for _, video := range videoMsgs {
+		_, liked := likedVideoIDsMap[video.VideoID]
 		video.IsFavorite = liked
+		video.IsFollow = followed
 	}
 	return videoMsgs, nil
 }

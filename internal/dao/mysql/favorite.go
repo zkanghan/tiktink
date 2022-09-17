@@ -12,6 +12,7 @@ type favoriteFunc interface {
 	DoFavorite(userID int64, videoID int64) error
 	CancelFavorite(userID int64, videoID int64) error
 	QueryFavoriteList(userID int64) ([]*model.VideoMSG, error)
+	QueryListIsLiked(userID int64, videoIDs []int64) ([]int64, error)
 }
 
 type favoriteDealer struct {
@@ -72,4 +73,17 @@ func NewFavoriteDealer(ctx *tracer.TraceCtx) favoriteFunc {
 	return &favoriteDealer{
 		Context: ctx,
 	}
+}
+
+//  TODO:加一个查询列表是否关注的方法，便于减少数据库交互
+
+// QueryListIsLiked 返回videoIDs中 user点赞的部分
+func (f *favoriteDealer) QueryListIsLiked(userID int64, videoIDs []int64) ([]int64, error) {
+	f.Context.TraceCaller()
+	var likedVideoID []int64
+	err := db.Raw("select video_id from favorites where user_id = ? and video_id in ?", userID, videoIDs).Scan(&likedVideoID).Error
+	if err != nil {
+		return []int64{}, err
+	}
+	return likedVideoID, nil
 }

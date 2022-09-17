@@ -25,7 +25,7 @@ func main() {
 // 初始化函数
 func init() {
 	//配置文件初始化,失败抛出异常
-	if err := setting.Init(); err != nil {
+	if err := setting.Init("./config/config.yaml"); err != nil {
 		panic("配置文件初始化出错:  " + err.Error())
 	}
 

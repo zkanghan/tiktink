@@ -7,12 +7,11 @@ import (
 
 // Video 与数据库交互的video模型
 type Video struct {
-	ID       int64  `gorm:"column:video_id;not null"`
 	AuthorID int64  `gorm:"column:author_id;not null"`
 	PlayURL  string `gorm:"column:play_url;not null"`
-	VideoKey string `gorm:"column:video_key;not null"`
+	VideoID  string `gorm:"column:video_id;not null"`
 	CoverURL string `gorm:"column:cover_url;not null"`
-	ImageKey string `gorm:"column:image_key;not null"`
+	ImageID  string `gorm:"column:image_id;not null"`
 	Title    string `gorm:"column:title;not null"`
 }
 
@@ -36,7 +35,7 @@ type PublishListResp struct {
 }
 
 type VideoMSG struct {
-	ID            int64 `json:"id" gorm:"column:video_id"`
+	VideoID       int64 `json:"id" gorm:"column:video_id"`
 	UserMSG       `json:"author"`
 	PlayURL       string `json:"play_url" gorm:"play_url"`
 	CoverURL      string `json:"cover_url" gorm:"cover_url"`

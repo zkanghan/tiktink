@@ -70,7 +70,7 @@ func (u *userDealer) CreateUser(Username, password string) (int64, error) {
 	if err := db.Create(user).Error; err != nil {
 		return -1, err
 	}
-	return user.ID, nil
+	return user.UserID, nil
 }
 
 // QueryLoginParams 查询用户id 和密码

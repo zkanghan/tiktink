@@ -20,80 +20,90 @@ USE `tiktink`;
 
 DROP TABLE IF EXISTS `comments`;
 
-CREATE TABLE `comments` (
-  `comment_id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `author_id` bigint(20) NOT NULL,
-  `video_id` bigint(20) NOT NULL,
-  `content` text COLLATE utf8mb4_bin NOT NULL,
-  `create_date` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`comment_id`),
-  KEY `idx_video_id` (`video_id`),
-  KEY `idx_author_id` (`author_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=52 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+CREATE TABLE `comments`
+(
+    `id`          bigint(20)               NOT NULL AUTO_INCREMENT,
+    `comment_id`  bigint(20)               NOT NULL COMMENT '评论编号',
+    `author_id`   bigint(20)               NOT NULL COMMENT '作者编号',
+    `video_id`    bigint(20)               NOT NULL COMMENT '视频编号',
+    `content`     text COLLATE utf8mb4_bin NOT NULL COMMENT '评论内容',
+    `create_date` timestamp                NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建日期',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uniq_comment_id` (`comment_id`),
+    KEY `idx_video_id` (`video_id`),
+    KEY `idx_author_id` (`author_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=105 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 /*Table structure for table `favorites` */
 
 DROP TABLE IF EXISTS `favorites`;
 
-CREATE TABLE `favorites` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `video_id` bigint(20) NOT NULL,
-  `user_id` bigint(20) NOT NULL,
-  `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `idx_video_id` (`video_id`),
-  KEY `idx_author_id` (`user_id`,`video_id`)
+CREATE TABLE `favorites`
+(
+    `id`          bigint(20) NOT NULL AUTO_INCREMENT,
+    `video_id`    bigint(20) NOT NULL,
+    `user_id`     bigint(20) NOT NULL,
+    `create_time` timestamp  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_video_id` (`video_id`),
+    KEY `idx_author_id` (`user_id`, `video_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 /*Table structure for table `follow` */
 
 DROP TABLE IF EXISTS `follow`;
 
-CREATE TABLE `follow` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `user_id` bigint(20) NOT NULL,
-  `to_user_id` bigint(20) NOT NULL COMMENT '被关注者的user_id',
-  `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `idx_user_id` (`user_id`,`to_user_id`),
-  KEY `idx_to_user_id` (`to_user_id`,`user_id`)
+CREATE TABLE `follow`
+(
+    `id`          bigint(20) NOT NULL AUTO_INCREMENT,
+    `user_id`     bigint(20) NOT NULL,
+    `to_user_id`  bigint(20) NOT NULL COMMENT '被关注者的user_id',
+    `create_time` timestamp  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_user_id` (`user_id`, `to_user_id`),
+    KEY `idx_to_user_id` (`to_user_id`, `user_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 /*Table structure for table `users` */
 
 DROP TABLE IF EXISTS `users`;
 
-CREATE TABLE `users` (
-  `user_id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `user_name` varchar(30) NOT NULL,
-  `password` varchar(100) NOT NULL,
-  `follow_count` bigint(20) NOT NULL DEFAULT '0',
-  `follower_count` bigint(20) NOT NULL DEFAULT '0',
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `deleted_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`user_id`),
-  UNIQUE KEY `idx_user_name` (`user_name`)
-) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4;
+CREATE TABLE `users`
+(
+    `id`             bigint(20)   NOT NULL AUTO_INCREMENT,
+    `user_id`        bigint(20)   NOT NULL,
+    `user_name`      varchar(30)  NOT NULL,
+    `password`       varchar(100) NOT NULL,
+    `follow_count`   bigint(20)   NOT NULL DEFAULT '0',
+    `follower_count` bigint(20)   NOT NULL DEFAULT '0',
+    `created_at`     timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`     timestamp    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `deleted_at`     timestamp    NULL     DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uniq_user_name` (`user_name`),
+    UNIQUE KEY `uniq_user_id` (`user_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4;
 
 /*Table structure for table `videos` */
 
 DROP TABLE IF EXISTS `videos`;
 
-CREATE TABLE `videos` (
-  `video_id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `author_id` bigint(20) NOT NULL,
-  `play_url` varchar(200) COLLATE utf8mb4_bin NOT NULL COMMENT '视频在存储桶中的唯一标识',
-  `video_key` varchar(50) COLLATE utf8mb4_bin NOT NULL,
-  `cover_url` varchar(200) COLLATE utf8mb4_bin NOT NULL,
-  `image_key` varchar(50) COLLATE utf8mb4_bin NOT NULL,
-  `favorite_count` bigint(20) NOT NULL DEFAULT '0',
-  `comment_count` bigint(20) NOT NULL DEFAULT '0',
-  `title` varchar(20) COLLATE utf8mb4_bin NOT NULL,
-  `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`video_id`),
-  KEY `idx_create_time` (`create_time`),
-  KEY `idx_author_id` (`author_id`)
+CREATE TABLE `videos`
+(
+    `id`             bigint(20)                       NOT NULL AUTO_INCREMENT,
+    `author_id`      bigint(20)                       NOT NULL COMMENT '作者编号',
+    `play_url`       varchar(200) COLLATE utf8mb4_bin NOT NULL COMMENT '视频在存储桶中的唯一标识',
+    `video_id`       varchar(50) COLLATE utf8mb4_bin  NOT NULL COMMENT '视频编号',
+    `cover_url`      varchar(200) COLLATE utf8mb4_bin NOT NULL COMMENT '封面路径',
+    `image_id`       varchar(50) COLLATE utf8mb4_bin  NOT NULL COMMENT '封面编号',
+    `favorite_count` bigint(20)                       NOT NULL DEFAULT '0' COMMENT '点赞数',
+    `comment_count`  bigint(20)                       NOT NULL DEFAULT '0' COMMENT '评论数',
+    `title`          varchar(20) COLLATE utf8mb4_bin  NOT NULL COMMENT '标题',
+    `create_time`    timestamp                        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uniq_video_id` (`video_id`),
+    KEY `idx_create_time` (`create_time`),
+    KEY `idx_author_id` (`author_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
