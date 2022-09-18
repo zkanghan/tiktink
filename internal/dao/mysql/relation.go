@@ -16,12 +16,12 @@ func NewRelationDealer(ctx *tracer.TraceCtx) followFunc {
 }
 
 type followFunc interface {
-	QueryIsFollow(UserID int64, ToUserID int64) (bool, error)
-	DoFollow(UserID int64, ToUserID int64) error
-	DoCancelFollow(UserID int64, ToUserID int64) error
+	QueryIsFollow(UserID string, ToUserID string) (bool, error)
+	DoFollow(UserID string, ToUserID string) error
+	DoCancelFollow(UserID string, ToUserID string) error
 	QueryFollowList(req *model.FollowListReq) ([]*model.UserMSG, error)
 	QueryFansList(req *model.FollowListReq) ([]*model.UserMSG, error)
-	QueryListIsFollow(userID int64, toUsers []int64) ([]int64, error)
+	QueryListIsFollow(userID string, toUsers []string) ([]string, error)
 }
 
 type followDealer struct {
@@ -56,7 +56,7 @@ func (f *followDealer) QueryFollowList(req *model.FollowListReq) ([]*model.UserM
 	return *userMSGs, nil
 }
 
-func (f *followDealer) DoFollow(UserID int64, ToUserID int64) error {
+func (f *followDealer) DoFollow(UserID string, ToUserID string) error {
 	f.Context.TraceCaller()
 	followModel := model.Follow{
 		UserID:   UserID,
@@ -76,7 +76,7 @@ func (f *followDealer) DoFollow(UserID int64, ToUserID int64) error {
 	})
 }
 
-func (f *followDealer) DoCancelFollow(UserID int64, ToUserID int64) error {
+func (f *followDealer) DoCancelFollow(UserID string, ToUserID string) error {
 	f.Context.TraceCaller()
 	return db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("user_id = ? and to_user_id = ?", UserID, ToUserID).Delete(&model.Follow{}).Error; err != nil {
@@ -94,7 +94,7 @@ func (f *followDealer) DoCancelFollow(UserID int64, ToUserID int64) error {
 	})
 }
 
-func (f *followDealer) QueryIsFollow(UserID int64, ToUserID int64) (bool, error) {
+func (f *followDealer) QueryIsFollow(UserID string, ToUserID string) (bool, error) {
 	f.Context.TraceCaller()
 	res := new(int8)
 	err := db.Raw("select 1 from follow where user_id = ? and to_user_id = ? limit 1", UserID, ToUserID).Scan(res).Error
@@ -102,12 +102,12 @@ func (f *followDealer) QueryIsFollow(UserID int64, ToUserID int64) (bool, error)
 }
 
 // QueryListIsFollow 返回toUsers中user关注的部分
-func (f *followDealer) QueryListIsFollow(userID int64, toUsers []int64) ([]int64, error) {
+func (f *followDealer) QueryListIsFollow(userID string, toUsers []string) ([]string, error) {
 	f.Context.TraceCaller()
-	var followedUsers []int64
+	var followedUsers []string
 	err := db.Raw("select to_user_id from follow where user_id = ? and to_user_id in ?", userID, toUsers).Scan(&followedUsers).Error
 	if err != nil {
-		return []int64{}, nil
+		return []string{}, nil
 	}
 	return followedUsers, nil
 }

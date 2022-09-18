@@ -25,7 +25,7 @@ func RelationAction(c *gin.Context) {
 		response.Error(c, http.StatusBadRequest, code.InvalidParam)
 		return
 	}
-	userID := c.GetInt64(middleware.CtxUserIDtxKey)
+	userID := c.GetString(middleware.CtxUserIDtxKey)
 	if userID == req.ToUserID { // 不允许自己关注自己
 		response.Error(c, http.StatusBadRequest, code.FollowSelf)
 		return
@@ -114,8 +114,8 @@ func FollowList(c *gin.Context) {
 		return
 	}
 	// 下面开始查询列表，获取账号主人的ID
-	aUserID := c.GetInt64(middleware.CtxUserIDtxKey)
-	userMSG, err := logic.NewRelationDealer(background.Clear().TraceCaller()).GetFollowList(aUserID, req)
+	currentUserID := c.GetString(middleware.CtxUserIDtxKey)
+	userMSG, err := logic.NewRelationDealer(background.Clear().TraceCaller()).GetFollowList(currentUserID, req)
 	if err != nil {
 		badFollowResponse(c, code.ServeBusy)
 		logger.PrintLogWithCTX("查询关注列表出错:", err, background)
@@ -147,7 +147,7 @@ func FansList(c *gin.Context) {
 		return
 	}
 	// 下面开始查询粉丝列表，获取账号主人的ID
-	aUserID := c.GetInt64(middleware.CtxUserIDtxKey)
+	aUserID := c.GetString(middleware.CtxUserIDtxKey)
 	userMSG, err := logic.NewRelationDealer(background.Clear().TraceCaller()).GetFansList(aUserID, req)
 	if err != nil {
 		badFollowResponse(c, code.ServeBusy)

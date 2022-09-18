@@ -25,13 +25,17 @@ func keyFunc(token *jwt.Token) (interface{}, error) {
 }
 
 type MyClaims struct {
-	UserID             int64  `json:"id"`
-	Username           string `json:"username"`
+	UserID             string //`json:"id"`
+	Username           string //`json:"username"`
 	jwt.StandardClaims        //内嵌匿名字段，但如果给这个结构体加上名称的话表示内嵌的是一个独立的结构体
 	//匿名结构体实现继承的效果，有名字的结构体实现组合效果。如果内嵌多个匿名结构体则可实现类似于多重继承的效果
 }
 
-func GenToken(userID int64, userName string) (aToken string, err error) {
+func (claim MyClaims) Valid() error {
+	return nil
+}
+
+func GenToken(userID string, userName string) (aToken string, err error) {
 	// 建立自己的token字段
 	c := MyClaims{
 		userID,
@@ -67,22 +71,22 @@ func ParseToken(tokenString string) (*MyClaims, bool, error) {
 }
 
 // RefreshToken 后期改为双token的鉴权模式
-func RefreshToken(aToken, rToken string) (newAToken string, err error) {
-	// 由于refresh token 不携带额外参数，直接使用parse而不是parseWithClaims
-	// refresh Token 过期直接返回
-	if _, err = jwt.Parse(rToken, keyFunc); err != nil {
-		return "", err
-	}
-
-	var claims = new(MyClaims)
-	//  从aToken解析数据绑定到claims上
-	_, err = jwt.ParseWithClaims(aToken, claims, keyFunc)
-
-	v, _ := err.(*jwt.ValidationError)
-
-	//不是过期错误
-	if v.Errors != jwt.ValidationErrorExpired {
-		return "", err
-	}
-	return GenToken(claims.UserID, claims.Username)
-}
+//func RefreshToken(aToken, rToken string) (newAToken string, err error) {
+//	// 由于refresh token 不携带额外参数，直接使用parse而不是parseWithClaims
+//	// refresh Token 过期直接返回
+//	if _, err = jwt.Parse(rToken, keyFunc); err != nil {
+//		return "", err
+//	}
+//
+//	var claims = new(MyClaims)
+//	//  从aToken解析数据绑定到claims上
+//	_, err = jwt.ParseWithClaims(aToken, claims, keyFunc)
+//
+//	v, _ := err.(*jwt.ValidationError)
+//
+//	//不是过期错误
+//	if v.Errors != jwt.ValidationErrorExpired {
+//		return "", err
+//	}
+//	return GenToken(claims.UserID, claims.Username)
+//}

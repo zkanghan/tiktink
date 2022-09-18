@@ -8,14 +8,14 @@ import (
 
 type feedFunc interface {
 	QueryFeedWithTime(latestTime string) ([]*model.VideoMSG, error)
-	QueryLatestTimeByID(videoID int64) (time.Time, error)
+	QueryLatestTimeByID(videoID string) (time.Time, error)
 }
 
 type feedDealer struct {
 	Context *tracer.TraceCtx
 }
 
-func (f *feedDealer) QueryLatestTimeByID(videoID int64) (time.Time, error) {
+func (f *feedDealer) QueryLatestTimeByID(videoID string) (time.Time, error) {
 	f.Context.TraceCaller()
 	var latestTime time.Time
 	err := db.Raw("select `create_time` from `videos` where video_id = ?", videoID).Scan(&latestTime).Error

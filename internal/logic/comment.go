@@ -12,9 +12,9 @@ type commentDealer struct {
 }
 
 type commentFunc interface {
-	ReleaseComment(req *model.CommentActionReq, userID int64) (*model.CommentMSG, error)
-	DeleteComment(videoID int64, commentID int64, userID int64) (bool, error)
-	GetCommentList(videoID int64, userID int64) ([]*model.CommentMSG, error)
+	ReleaseComment(req *model.CommentActionReq, userID string) (*model.CommentMSG, error)
+	DeleteComment(videoID string, commentID string, userID string) (bool, error)
+	GetCommentList(videoID string, userID string) ([]*model.CommentMSG, error)
 }
 
 var _ commentFunc = &commentDealer{}
@@ -26,7 +26,7 @@ func NewCommentDealer(ctx *tracer.TraceCtx) *commentDealer {
 }
 
 // ReleaseComment 指针类型的方法接收者修改才是有效的
-func (c *commentDealer) ReleaseComment(req *model.CommentActionReq, userID int64) (*model.CommentMSG, error) {
+func (c *commentDealer) ReleaseComment(req *model.CommentActionReq, userID string) (*model.CommentMSG, error) {
 	c.Context.TraceCaller() // save context message
 
 	comment, err := mysql.NewCommentDealer(c.Context).CreateComment(req.VideoID, userID, req.CommentText)
@@ -49,7 +49,7 @@ func (c *commentDealer) ReleaseComment(req *model.CommentActionReq, userID int64
 }
 
 // DeleteComment 评论删除成功返回true
-func (c *commentDealer) DeleteComment(videoID int64, commentID int64, userID int64) (bool, error) {
+func (c *commentDealer) DeleteComment(videoID string, commentID string, userID string) (bool, error) {
 	c.Context.TraceCaller() //save context message
 
 	affectRows, err := mysql.NewCommentDealer(c.Context).DeleteComment(videoID, commentID, userID)
@@ -60,7 +60,7 @@ func (c *commentDealer) DeleteComment(videoID int64, commentID int64, userID int
 }
 
 // TODO:限制一次查询的评论数
-func (c *commentDealer) GetCommentList(videoID int64, userID int64) ([]*model.CommentMSG, error) {
+func (c *commentDealer) GetCommentList(videoID string, userID string) ([]*model.CommentMSG, error) {
 	c.Context.TraceCaller()
 
 	commentMsgs, err := mysql.NewCommentDealer(c.Context).QueryCommentList(videoID)
@@ -69,7 +69,7 @@ func (c *commentDealer) GetCommentList(videoID int64, userID int64) ([]*model.Co
 	}
 
 	// 获取需要的用户id
-	var toUserIDs []int64
+	var toUserIDs []string
 	for _, comment := range commentMsgs {
 		toUserIDs = append(toUserIDs, comment.UserID)
 	}

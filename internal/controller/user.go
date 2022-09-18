@@ -118,7 +118,7 @@ func UserInformation(c *gin.Context) {
 		badUserInfoResp(c, code.UserNotExist)
 		return
 	}
-	userID := c.GetInt64(middleware.CtxUserIDtxKey)
+	userID := c.GetString(middleware.CtxUserIDtxKey)
 	userMsg, err := logic.NewUserDealer(background.Clear().TraceCaller()).GetUserInformation(req.UserID, userID)
 	if err != nil {
 		badUserInfoResp(c, code.ServeBusy)

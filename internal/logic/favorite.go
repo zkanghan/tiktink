@@ -11,7 +11,7 @@ type favoriteDealer struct {
 	Context *tracer.TraceCtx
 }
 type favoriteFunc interface {
-	GetIsLiked(userID int64, videoID int64) (bool, error)
+	GetIsLiked(userID string, videoID string) (bool, error)
 }
 
 var _ favoriteFunc = &favoriteDealer{}
@@ -22,22 +22,22 @@ func NewFavoriteDealer(ctx *tracer.TraceCtx) *favoriteDealer {
 	}
 }
 
-func (f *favoriteDealer) GetIsLiked(userID int64, videoID int64) (bool, error) {
+func (f *favoriteDealer) GetIsLiked(userID string, videoID string) (bool, error) {
 	f.Context.TraceCaller()
 	return mysql.NewFavoriteDealer(f.Context).QueryIsLiked(userID, videoID)
 }
 
-func (f *favoriteDealer) DoFavorite(userID int64, videoID int64) error {
+func (f *favoriteDealer) DoFavorite(userID string, videoID string) error {
 	f.Context.TraceCaller()
 	return mysql.NewFavoriteDealer(f.Context).DoFavorite(userID, videoID)
 }
 
-func (f *favoriteDealer) CancelFavorite(userID int64, videoID int64) error {
+func (f *favoriteDealer) CancelFavorite(userID string, videoID string) error {
 	f.Context.TraceCaller()
 	return mysql.NewFavoriteDealer(f.Context).CancelFavorite(userID, videoID)
 }
 
-func (f *favoriteDealer) GetFavoriteList(userID int64) ([]*model.VideoMSG, error) {
+func (f *favoriteDealer) GetFavoriteList(userID string) ([]*model.VideoMSG, error) {
 	f.Context.TraceCaller()
 	videoMsgS, err := mysql.NewFavoriteDealer(f.Context).QueryFavoriteList(userID)
 	if err != nil {
@@ -45,7 +45,7 @@ func (f *favoriteDealer) GetFavoriteList(userID int64) ([]*model.VideoMSG, error
 	}
 
 	// 获取需要的用户id
-	var toUserIDs []int64
+	var toUserIDs []string
 	for _, video := range videoMsgS {
 		toUserIDs = append(toUserIDs, video.UserMSG.UserID)
 	}

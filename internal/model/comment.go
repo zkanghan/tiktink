@@ -7,9 +7,9 @@ import (
 
 // Comment 与数据库交互的结构体
 type Comment struct {
-	CommentID int64     `gorm:"column:comment_id"`
-	AuthorID  int64     `gorm:"column:author_id;not null"`
-	VideoID   int64     `gorm:"column:video_id;not null"`
+	CommentID string    `gorm:"column:comment_id"`
+	AuthorID  string    `gorm:"column:author_id;not null"`
+	VideoID   string    `gorm:"column:video_id;not null"`
 	Content   string    `gorm:"column:content;not null"`
 	CreateAt  time.Time `gorm:"column:create_date;autoCreateTime;not null"`
 }
@@ -21,10 +21,10 @@ func (Comment) TableName() string {
 // 以下为请求与响应的结构体
 
 type CommentActionReq struct {
-	VideoID     int64  `form:"video_id" binding:"required"`
+	VideoID     string `form:"video_id" binding:"required"`
 	ActionType  int8   `form:"action_type" binding:"required,oneof=1 2"`
 	CommentText string `form:"comment_text"`
-	CommentID   int64  `form:"comment_id"`
+	CommentID   string `form:"comment_id"`
 }
 
 type CommentActionResp struct {
@@ -34,7 +34,7 @@ type CommentActionResp struct {
 }
 
 type CommentListReq struct {
-	VideoID int64 `form:"video_id" binding:"required"`
+	VideoID string `form:"video_id" binding:"required"`
 }
 
 type CommentListResp struct {
@@ -44,7 +44,7 @@ type CommentListResp struct {
 }
 
 type CommentMSG struct {
-	CommentID  int64 `json:"id"`
+	CommentID  string `json:"id"`
 	UserMSG    `json:"user"`
 	Content    string `json:"content"`
 	CreateDate string `json:"create_date"`

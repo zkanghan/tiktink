@@ -3,8 +3,8 @@ package model
 import "tiktink/internal/code"
 
 type Favorite struct {
-	VideoID int64 `gorm:"column:video_id;not null"`
-	UserID  int64 `gorm:"column:user_id;not null"`
+	VideoID string `gorm:"column:video_id;not null"`
+	UserID  string `gorm:"column:user_id;not null"`
 }
 
 func (Favorite) TableName() string {
@@ -12,12 +12,12 @@ func (Favorite) TableName() string {
 }
 
 type FavoriteActionReq struct {
-	VideoID    int64 `form:"video_id" binding:"required"`
-	ActionType int8  `form:"action_type" binding:"required,oneof=1 2"`
+	VideoID    string `form:"video_id" binding:"required"`
+	ActionType int8   `form:"action_type" binding:"required,oneof=1 2"`
 }
 
 type FavoriteListReq struct {
-	UserID int64 `form:"user_id" binding:"required"`
+	UserID string `form:"user_id" binding:"required"`
 }
 
 type FavoriteListResp struct {

@@ -27,7 +27,7 @@ func FavoriteAction(c *gin.Context) {
 	}
 	background := tracer.Background().TraceCaller()
 	// 查询是否点赞了
-	userID := c.GetInt64(middleware.CtxUserIDtxKey)
+	userID := c.GetString(middleware.CtxUserIDtxKey)
 	liked, err := logic.NewFavoriteDealer(background).GetIsLiked(userID, req.VideoID)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, code.ServeBusy)

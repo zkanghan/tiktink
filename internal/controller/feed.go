@@ -55,7 +55,7 @@ func Feed(c *gin.Context) {
 	background := tracer.Background().TraceCaller()
 	switch userLogin {
 	case true:
-		userID := c.GetInt64(middleware.CtxUserIDtxKey)
+		userID := c.GetString(middleware.CtxUserIDtxKey)
 		videoList, nextTime, err = logic.NewFeedDealer(background.Clear().TraceCaller()).GetFeed(&userID, latestTime)
 		if err != nil {
 			logger.PrintLogWithCTX("获取视频流错误:", err, background)

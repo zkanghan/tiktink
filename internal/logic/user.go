@@ -32,7 +32,7 @@ type userDealer struct {
 	Context *tracer.TraceCtx
 }
 
-var _ userFunc = &userDealer{}
+//var _ userFunc = &userDealer{}
 
 type userFunc interface {
 	CreateUser(username string, password string) (int64, error)
@@ -48,28 +48,28 @@ func NewUserDealer(ctx *tracer.TraceCtx) *userDealer {
 	}
 }
 
-func (u *userDealer) CreateUser(username string, password string) (int64, error) {
+func (u *userDealer) CreateUser(username string, password string) (string, error) {
 	//  还要查询用户是不是已经存在
 	u.Context.TraceCaller()
 	hashedPassword, err := hashPassword(password, u.Context)
 	if err != nil {
-		return -1, err
+		return "", err
 	}
 	return mysql.NewUserDealer(u.Context).CreateUser(username, hashedPassword)
 }
 
 // CheckUser 校验用户用户名和密码是否正确，正确返回用户id
-func (u *userDealer) CheckUser(username, password string) (bool, int64, error) {
+func (u *userDealer) CheckUser(username, password string) (bool, string, error) {
 	u.Context.TraceCaller()
 	todo := mysql.NewUserDealer(u.Context)
 	//  从数据库获取密码
 	DBpassword, id, err := todo.QueryLoginParams(username)
 	if err != nil {
-		return false, -1, err
+		return false, "", err
 	}
 	//  密码匹配错误，非运行异常
 	if err := comparePassword(DBpassword, password, u.Context); err != nil {
-		return false, -1, nil
+		return false, "", nil
 	}
 	return true, id, nil
 }
@@ -80,12 +80,12 @@ func (u *userDealer) GetUserExistByName(username string) (bool, error) {
 	return mysql.NewUserDealer(u.Context).QueryUserExistByName(username)
 }
 
-func (u *userDealer) GetUserExistByID(id int64) (bool, error) {
+func (u *userDealer) GetUserExistByID(id string) (bool, error) {
 	u.Context.TraceCaller()
 	return mysql.NewUserDealer(u.Context).QueryUserExistByID(id)
 }
 
-func (u *userDealer) GetUserInformation(toQueryUserID int64, userID int64) (*model.UserMSG, error) {
+func (u *userDealer) GetUserInformation(toQueryUserID string, userID string) (*model.UserMSG, error) {
 	u.Context.TraceCaller()
 	userMsg, err := mysql.NewUserDealer(u.Context).QueryUserByID(toQueryUserID)
 	if err != nil {

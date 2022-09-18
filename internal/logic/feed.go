@@ -13,7 +13,7 @@ type feedDealer struct {
 }
 
 type feedFunc interface {
-	GetFeed(userID *int64, latestTime int64) ([]*model.VideoMSG, time.Time, error)
+	GetFeed(userID *string, latestTime int64) ([]*model.VideoMSG, time.Time, error)
 }
 
 var _ feedFunc = &feedDealer{}
@@ -25,7 +25,7 @@ func NewFeedDealer(ctx *tracer.TraceCtx) *feedDealer {
 }
 
 // GetFeed 限制返回视频的最新时间要小于latestTime，即用户观看视频的顺序是从新到久
-func (f *feedDealer) GetFeed(userID *int64, latestTime int64) ([]*model.VideoMSG, time.Time, error) {
+func (f *feedDealer) GetFeed(userID *string, latestTime int64) ([]*model.VideoMSG, time.Time, error) {
 	f.Context.TraceCaller()
 	//  获取videoList
 	timeStr := time.Unix(latestTime, 0).Format("2006-01-02 15:04:05")
@@ -40,7 +40,7 @@ func (f *feedDealer) GetFeed(userID *int64, latestTime int64) ([]*model.VideoMSG
 	// 判断是否关注和点赞
 	if userID != nil {
 		// 组装视频列表的作者id和视频id
-		var toUsersIDs, videoIDs []int64
+		var toUsersIDs, videoIDs []string
 		for _, video := range videoList {
 			toUsersIDs = append(toUsersIDs, video.UserMSG.UserID)
 			videoIDs = append(videoIDs, video.VideoID)

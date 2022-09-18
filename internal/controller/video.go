@@ -26,7 +26,7 @@ func PublishVideo(c *gin.Context) {
 		Data:  videoFile,
 	}
 	//  获取用户id
-	userID := c.GetInt64(middleware.CtxUserIDtxKey)
+	userID := c.GetString(middleware.CtxUserIDtxKey)
 	//  交付逻辑层处理
 	background := tracer.Background().TraceCaller()
 
@@ -54,7 +54,7 @@ func PublishList(c *gin.Context) {
 		badPublishListResp(c, code.ServeBusy)
 		return
 	}
-	userID := c.GetInt64(middleware.CtxUserIDtxKey)
+	userID := c.GetString(middleware.CtxUserIDtxKey)
 	background := tracer.Background().TraceCaller()
 	videoList, err := logic.NewVideoDealer(background).GetVideoList(userID, req.UserID)
 	if err != nil {

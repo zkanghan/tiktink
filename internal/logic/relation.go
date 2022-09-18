@@ -22,7 +22,7 @@ type relationFunc interface {
 	GetFansList(aUserID int64, req *model.FollowListReq) ([]*model.UserMSG, error)
 }
 
-var _ relationFunc = &relationDealer{}
+//var _ relationFunc = &relationDealer{}
 
 func NewRelationDealer(ctx *tracer.TraceCtx) *relationDealer {
 	return &relationDealer{
@@ -30,29 +30,29 @@ func NewRelationDealer(ctx *tracer.TraceCtx) *relationDealer {
 	}
 }
 
-func (r *relationDealer) GetIsFollowed(UserID int64, ToUserID int64) (bool, error) {
+func (r *relationDealer) GetIsFollowed(UserID string, ToUserID string) (bool, error) {
 	r.Context.TraceCaller()
 	return mysql.NewRelationDealer(r.Context).QueryIsFollow(UserID, ToUserID)
 }
 
-func (r *relationDealer) DoFollow(UserID int64, ToUserID int64) error {
+func (r *relationDealer) DoFollow(UserID string, ToUserID string) error {
 	r.Context.TraceCaller()
 	return mysql.NewRelationDealer(r.Context).DoFollow(UserID, ToUserID)
 }
 
-func (r *relationDealer) DoCancelFollow(UserID int64, ToUserID int64) error {
+func (r *relationDealer) DoCancelFollow(UserID string, ToUserID string) error {
 	r.Context.TraceCaller()
 	return mysql.NewRelationDealer(r.Context).DoCancelFollow(UserID, ToUserID)
 }
 
-func (r *relationDealer) GetFollowList(aUserID int64, req *model.FollowListReq) ([]*model.UserMSG, error) {
+func (r *relationDealer) GetFollowList(aUserID string, req *model.FollowListReq) ([]*model.UserMSG, error) {
 	r.Context.TraceCaller()
 	userMSGs, err := mysql.NewRelationDealer(r.Context).QueryFollowList(req)
 	if err != nil {
 		return []*model.UserMSG{}, err
 	}
 	// 组装用户ID切片
-	var toUserIDs []int64
+	var toUserIDs []string
 	for _, user := range userMSGs {
 		toUserIDs = append(toUserIDs, user.UserID)
 	}
@@ -67,7 +67,7 @@ func (r *relationDealer) GetFollowList(aUserID int64, req *model.FollowListReq) 
 	return userMSGs, nil
 }
 
-func (r *relationDealer) GetFansList(aUserID int64, req *model.FollowListReq) ([]*model.UserMSG, error) {
+func (r *relationDealer) GetFansList(aUserID string, req *model.FollowListReq) ([]*model.UserMSG, error) {
 	r.Context.TraceCaller()
 	userMSGs, err := mysql.NewRelationDealer(r.Context).QueryFansList(req)
 	if err != nil {
@@ -75,7 +75,7 @@ func (r *relationDealer) GetFansList(aUserID int64, req *model.FollowListReq) ([
 	}
 
 	// 组装用户ID切片
-	var toUserIDs []int64
+	var toUserIDs []string
 	for _, user := range userMSGs {
 		toUserIDs = append(toUserIDs, user.UserID)
 	}

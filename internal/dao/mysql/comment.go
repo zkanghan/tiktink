@@ -8,16 +8,16 @@ import (
 )
 
 type commentFunc interface {
-	CreateComment(videoID int64, userID int64, content string) (*model.Comment, error)
-	DeleteComment(videoID int64, CommentID int64, userID int64) (int64, error)
-	QueryCommentList(videoID int64) ([]*model.CommentMSG, error)
+	CreateComment(videoID string, userID string, content string) (*model.Comment, error)
+	DeleteComment(videoID string, CommentID string, userID string) (int64, error)
+	QueryCommentList(videoID string) ([]*model.CommentMSG, error)
 }
 
 type commentDealer struct {
 	Context *tracer.TraceCtx
 }
 
-func (c *commentDealer) QueryCommentList(videoID int64) ([]*model.CommentMSG, error) {
+func (c *commentDealer) QueryCommentList(videoID string) ([]*model.CommentMSG, error) {
 	c.Context.TraceCaller()
 	var commentMsg []*model.CommentMSG
 	err := db.Raw("select `user_id`,`user_name`,`follow_count`,`follower_count`,`comment_id`,"+
@@ -31,10 +31,10 @@ func (c *commentDealer) QueryCommentList(videoID int64) ([]*model.CommentMSG, er
 }
 
 // DeleteComment 只有评论的所有者可以删除评论，userID加了一层校验  返回受影响的行数
-func (c *commentDealer) DeleteComment(videoID int64, CommentID int64, userID int64) (int64, error) {
+func (c *commentDealer) DeleteComment(videoID string, CommentID string, userID string) (affectRows int64, err error) {
 	c.Context.TraceCaller()
 	var todoDB *gorm.DB
-	err := db.Transaction(func(tx *gorm.DB) error {
+	err = db.Transaction(func(tx *gorm.DB) error {
 		todoDB = tx.Where("comment_id = ? and author_id = ? and video_id = ?", CommentID, userID, videoID).Delete(&model.Comment{})
 		if todoDB.Error != nil {
 			return todoDB.Error
@@ -53,7 +53,7 @@ func (c *commentDealer) DeleteComment(videoID int64, CommentID int64, userID int
 	return todoDB.RowsAffected, nil
 }
 
-func (c *commentDealer) CreateComment(videoID int64, userID int64, content string) (*model.Comment, error) {
+func (c *commentDealer) CreateComment(videoID string, userID string, content string) (*model.Comment, error) {
 	c.Context.TraceCaller()
 	comment := &model.Comment{
 		VideoID:  videoID,

@@ -51,7 +51,7 @@ func CommentAction(c *gin.Context) {
 		badCommentActionResp(c, code.VideoNotExist)
 		return
 	}
-	userID := c.GetInt64(middleware.CtxUserIDtxKey)
+	userID := c.GetString(middleware.CtxUserIDtxKey)
 	switch req.ActionType {
 	case releaseComment:
 		if req.CommentText == "" { //empty comment
@@ -100,7 +100,7 @@ func CommentList(c *gin.Context) {
 	}
 	background := tracer.Background().TraceCaller() //  new context message
 
-	userID := c.GetInt64(middleware.CtxUserIDtxKey)
+	userID := c.GetString(middleware.CtxUserIDtxKey)
 	commentList, err := logic.NewCommentDealer(background).GetCommentList(req.VideoID, userID)
 	if err != nil {
 		badCommentListResp(c, code.ServeBusy)

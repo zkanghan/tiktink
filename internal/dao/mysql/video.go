@@ -7,15 +7,15 @@ import (
 
 type videoFunc interface {
 	PublishVideo(video *model.Video) error
-	QueryVideoExist(videoID int64) (bool, error)
-	QueryVideoByAuthorID(authorID int64) ([]*model.VideoMSG, error)
+	QueryVideoExist(videoID string) (bool, error)
+	QueryVideoByAuthorID(authorID string) ([]*model.VideoMSG, error)
 }
 
 type videoDealer struct {
 	Context *tracer.TraceCtx
 }
 
-func (v *videoDealer) QueryVideoByAuthorID(authorID int64) ([]*model.VideoMSG, error) {
+func (v *videoDealer) QueryVideoByAuthorID(authorID string) ([]*model.VideoMSG, error) {
 	v.Context.TraceCaller()
 	var videoMsgs []*model.VideoMSG
 	err := db.Raw("select `video_id`,`play_url`,`cover_url`,`favorite_count`,`comment_count`,`title`,"+
@@ -28,7 +28,7 @@ func (v *videoDealer) QueryVideoByAuthorID(authorID int64) ([]*model.VideoMSG, e
 	return videoMsgs, nil
 }
 
-func (v *videoDealer) QueryVideoExist(videoID int64) (bool, error) {
+func (v *videoDealer) QueryVideoExist(videoID string) (bool, error) {
 	v.Context.TraceCaller()
 	cnt := new(int64)
 	err := db.Raw("select 1 from videos where video_id = ?", videoID).Scan(cnt).Error

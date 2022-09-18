@@ -32,7 +32,7 @@ type videoFunc interface {
 	GetVideoList(userID int64, authorID int64) ([]*model.VideoMSG, error)
 }
 
-var _ videoFunc = &videoDealer{}
+//var _ videoFunc = &videoDealer{}
 
 func NewVideoDealer(ctx *tracer.TraceCtx) *videoDealer {
 	return &videoDealer{
@@ -60,7 +60,7 @@ func generateCover(videoPath string, coverID string, ctx *tracer.TraceCtx) (stri
 	return coverURL, err
 }
 
-func (v *videoDealer) PublishVideo(video *model.PublishVideoReq, userID int64) error {
+func (v *videoDealer) PublishVideo(video *model.PublishVideoReq, userID string) error {
 	v.Context.TraceCaller()
 	//  生成视频唯一id，并拼接对象存储唯一key
 	videoID := snowid.GenID()
@@ -102,20 +102,20 @@ func (v *videoDealer) PublishVideo(video *model.PublishVideoReq, userID int64) e
 	return nil
 }
 
-func (v *videoDealer) GetIsVideoExist(videoID int64) (bool, error) {
+func (v *videoDealer) GetIsVideoExist(videoID string) (bool, error) {
 	v.Context.TraceCaller()
 	return mysql.NewVideoDealer(v.Context).QueryVideoExist(videoID)
 }
 
-func (v *videoDealer) GetVideoList(currentUserID int64, authorID int64) ([]*model.VideoMSG, error) {
+func (v *videoDealer) GetVideoList(currentUserID string, authorID string) ([]*model.VideoMSG, error) {
 	v.Context.TraceCaller()
 	videoMsgs, err := mysql.NewVideoDealer(v.Context).QueryVideoByAuthorID(authorID)
 	if err != nil {
 		return []*model.VideoMSG{}, err
 	}
-	//  todo: 把循环去掉改为一次查询
+
 	// 组装视频id切片
-	var videoIDs []int64
+	var videoIDs []string
 	for _, video := range videoMsgs {
 		videoIDs = append(videoIDs, video.VideoID)
 	}

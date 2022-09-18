@@ -8,18 +8,18 @@ import (
 )
 
 type favoriteFunc interface {
-	QueryIsLiked(userID int64, videoId int64) (bool, error)
-	DoFavorite(userID int64, videoID int64) error
-	CancelFavorite(userID int64, videoID int64) error
-	QueryFavoriteList(userID int64) ([]*model.VideoMSG, error)
-	QueryListIsLiked(userID int64, videoIDs []int64) ([]int64, error)
+	QueryIsLiked(userID string, videoId string) (bool, error)
+	DoFavorite(userID string, videoID string) error
+	CancelFavorite(userID string, videoID string) error
+	QueryFavoriteList(userID string) ([]*model.VideoMSG, error)
+	QueryListIsLiked(userID string, videoIDs []string) ([]string, error)
 }
 
 type favoriteDealer struct {
 	Context *tracer.TraceCtx
 }
 
-func (f *favoriteDealer) QueryFavoriteList(userID int64) ([]*model.VideoMSG, error) {
+func (f *favoriteDealer) QueryFavoriteList(userID string) ([]*model.VideoMSG, error) {
 	f.Context.TraceCaller()
 	var videoMsgs []*model.VideoMSG
 	err := db.Raw("SELECT `video_id`,`user_id`,`user_name`,`follow_count`,`follower_count`,`play_url`,`cover_url`,`favorite_count`,`comment_count`,`title` "+
@@ -32,7 +32,7 @@ func (f *favoriteDealer) QueryFavoriteList(userID int64) ([]*model.VideoMSG, err
 	return videoMsgs, nil
 }
 
-func (f *favoriteDealer) CancelFavorite(authorID int64, videoID int64) error {
+func (f *favoriteDealer) CancelFavorite(authorID string, videoID string) error {
 	f.Context.TraceCaller()
 	return db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("user_id = ? and video_id = ?", authorID, videoID).Delete(&model.Favorite{}).Error; err != nil {
@@ -45,7 +45,7 @@ func (f *favoriteDealer) CancelFavorite(authorID int64, videoID int64) error {
 	})
 }
 
-func (f *favoriteDealer) DoFavorite(authorID int64, videoID int64) error {
+func (f *favoriteDealer) DoFavorite(authorID string, videoID string) error {
 	f.Context.TraceCaller()
 	favoriteModel := &model.Favorite{
 		VideoID: videoID,
@@ -62,7 +62,7 @@ func (f *favoriteDealer) DoFavorite(authorID int64, videoID int64) error {
 	})
 }
 
-func (f *favoriteDealer) QueryIsLiked(authorID int64, videoId int64) (bool, error) {
+func (f *favoriteDealer) QueryIsLiked(authorID string, videoId string) (bool, error) {
 	f.Context.TraceCaller()
 	res := new(int8)
 	err := db.Raw("select 1 from favorites where user_id = ? and video_id = ? limit 1", authorID, videoId).Scan(res).Error
@@ -78,12 +78,12 @@ func NewFavoriteDealer(ctx *tracer.TraceCtx) favoriteFunc {
 //  TODO:加一个查询列表是否关注的方法，便于减少数据库交互
 
 // QueryListIsLiked 返回videoIDs中 user点赞的部分
-func (f *favoriteDealer) QueryListIsLiked(userID int64, videoIDs []int64) ([]int64, error) {
+func (f *favoriteDealer) QueryListIsLiked(userID string, videoIDs []string) ([]string, error) {
 	f.Context.TraceCaller()
-	var likedVideoID []int64
+	var likedVideoID []string
 	err := db.Raw("select video_id from favorites where user_id = ? and video_id in ?", userID, videoIDs).Scan(&likedVideoID).Error
 	if err != nil {
-		return []int64{}, err
+		return []string{}, err
 	}
 	return likedVideoID, nil
 }
