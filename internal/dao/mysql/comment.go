@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"tiktink/internal/model"
+	"tiktink/pkg/snowid"
 	"tiktink/pkg/tracer"
 
 	"gorm.io/gorm"
@@ -56,14 +57,15 @@ func (c *commentDealer) DeleteComment(videoID string, CommentID string, userID s
 func (c *commentDealer) CreateComment(videoID string, userID string, content string) (*model.Comment, error) {
 	c.Context.TraceCaller()
 	comment := &model.Comment{
-		VideoID:  videoID,
-		AuthorID: userID,
-		Content:  content,
+		CommentID: snowid.GenID(),
+		VideoID:   videoID,
+		AuthorID:  userID,
+		Content:   content,
 	}
 	//  这里对应视频的评论数也要加1，先™解决创建记录的问题吧
 	err := db.Transaction(func(tx *gorm.DB) error {
 		// 创建记录
-		if err := tx.Select("video_id", "author_id", "content").Create(comment).Error; err != nil {
+		if err := tx.Select("comment_id", "video_id", "author_id", "content").Create(comment).Error; err != nil {
 			return err
 		}
 		//视频下对应的评论数加1

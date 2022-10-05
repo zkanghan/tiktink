@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"tiktink/internal/model"
+	"tiktink/pkg/snowid"
 	"tiktink/pkg/tracer"
 )
 
@@ -21,8 +22,7 @@ type userDealer struct {
 func (u *userDealer) QueryUserByID(userId string) (*model.UserMSG, error) {
 	u.Context.TraceCaller()
 	userMsg := new(model.UserMSG)
-	err := db.Raw("select `user_id`,`user_name`,`follow_count`,`follower_count` "+
-		"from `users` where `user_id` = ?", userId).Scan(userMsg).Error
+	err := db.Raw("select `user_id`,`user_name`,`follow_count`,`follower_count` from `users` where `user_id` = ?", userId).Scan(userMsg).Error
 	if err != nil {
 		return nil, err
 	}
@@ -64,6 +64,7 @@ func (u *userDealer) QueryNameByID(id string) (username string, err error) {
 func (u *userDealer) CreateUser(Username, password string) (userID string, err error) {
 	u.Context.TraceCaller()
 	user := &model.User{
+		UserID:   snowid.GenID(),
 		UserName: Username,
 		Password: password,
 	}
