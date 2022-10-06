@@ -21,7 +21,7 @@ const (
 // RelationAction 关注操作接口
 func RelationAction(c *gin.Context) {
 	req := &model.FollowActionReq{}
-	if err := c.ShouldBindQuery(req); err != nil { //绑定参数错误
+	if err := c.ShouldBind(req); err != nil { //绑定参数错误
 		response.Error(c, http.StatusBadRequest, code.InvalidParam)
 		return
 	}

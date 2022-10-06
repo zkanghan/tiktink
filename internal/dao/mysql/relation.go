@@ -47,7 +47,7 @@ func (f *followDealer) QueryFollowList(req *model.FollowListReq) ([]*model.UserM
 	begin := (req.PageCount - 1) * pageRows //展示记录的起点
 	end := pageRows                         //展示记录的终点
 	err := db.Raw("SELECT `user_id`,`user_name`,`follow_count`,`follower_count`FROM `users` "+
-		"WHERE `users`.`id` "+
+		"WHERE `users`.`user_id` "+
 		"IN (SELECT `to_user_id` FROM `follow` WHERE `follow`.`user_id` = ?) "+
 		"LIMIT ?,?", req.UserID, begin, end).Scan(userMSGs).Error
 	if err != nil {

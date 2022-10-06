@@ -73,7 +73,7 @@ func badRespFavoriteList(c *gin.Context, code code.ResCode) {
 
 func FavoriteList(c *gin.Context) {
 	req := new(model.FavoriteListReq)
-	if err := c.ShouldBindQuery(req); err != nil {
+	if err := c.ShouldBind(req); err != nil {
 		badRespFavoriteList(c, code.InvalidParam)
 		fmt.Println(err)
 		return
