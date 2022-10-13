@@ -25,7 +25,8 @@ type PublishVideoReq struct {
 }
 
 type PublishListReq struct {
-	UserID string `form:"user_id" binding:"required"`
+	UserID     string `form:"user_id" binding:"required"`
+	PageNumber int    `form:"pn" binding:"required"`
 }
 
 type PublishListResp struct {

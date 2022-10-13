@@ -37,9 +37,9 @@ func (f *favoriteDealer) CancelFavorite(userID string, videoID string) error {
 	return mysql.NewFavoriteDealer(f.Context).CancelFavorite(userID, videoID)
 }
 
-func (f *favoriteDealer) GetFavoriteList(userID string) ([]*model.VideoMSG, error) {
+func (f *favoriteDealer) GetFavoriteList(req model.FavoriteListReq) ([]*model.VideoMSG, error) {
 	f.Context.TraceCaller()
-	videoMsgS, err := mysql.NewFavoriteDealer(f.Context).QueryFavoriteList(userID)
+	videoMsgS, err := mysql.NewFavoriteDealer(f.Context).QueryFavoriteList(req.UserID, req.PageNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func (f *favoriteDealer) GetFavoriteList(userID string) ([]*model.VideoMSG, erro
 		toUserIDs = append(toUserIDs, video.UserMSG.UserID)
 	}
 	//  获取user在toUserID中关注了哪些
-	followedUsers, err := mysql.NewRelationDealer(f.Context).QueryListIsFollow(userID, toUserIDs)
+	followedUsers, err := mysql.NewRelationDealer(f.Context).QueryListIsFollow(req.UserID, toUserIDs)
 	if err != nil {
 		return []*model.VideoMSG{}, err
 	}

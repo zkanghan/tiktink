@@ -101,7 +101,7 @@ func CommentList(c *gin.Context) {
 	background := tracer.Background().TraceCaller() //  new context message
 
 	userID := c.GetString(middleware.CtxUserIDtxKey)
-	commentList, err := logic.NewCommentDealer(background).GetCommentList(req.VideoID, userID)
+	commentList, err := logic.NewCommentDealer(background).GetCommentList(*req, userID)
 	if err != nil {
 		badCommentListResp(c, code.ServeBusy)
 		logger.PrintLogWithCTX("获取评论列表失败:", err, background)

@@ -56,7 +56,7 @@ func PublishList(c *gin.Context) {
 	}
 	userID := c.GetString(middleware.CtxUserIDtxKey)
 	background := tracer.Background().TraceCaller()
-	videoList, err := logic.NewVideoDealer(background).GetVideoList(userID, req.UserID)
+	videoList, err := logic.NewVideoDealer(background).GetVideoList(userID, req)
 	if err != nil {
 		badPublishListResp(c, code.ServeBusy)
 		logger.PrintLogWithCTX("获取视频列表错误:", err, background)

@@ -7,11 +7,15 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	favoriteVideoPageRows = 20
+)
+
 type favoriteFunc interface {
 	QueryIsLiked(userID string, videoId string) (bool, error)
 	DoFavorite(userID string, videoID string) error
 	CancelFavorite(userID string, videoID string) error
-	QueryFavoriteList(userID string) ([]*model.VideoMSG, error)
+	QueryFavoriteList(userID string, pn int) ([]*model.VideoMSG, error)
 	QueryListIsLiked(userID string, videoIDs []string) ([]string, error)
 }
 
@@ -19,13 +23,15 @@ type favoriteDealer struct {
 	Context *tracer.TraceCtx
 }
 
-func (f *favoriteDealer) QueryFavoriteList(userID string) ([]*model.VideoMSG, error) {
+func (f *favoriteDealer) QueryFavoriteList(userID string, pn int) ([]*model.VideoMSG, error) {
 	f.Context.TraceCaller()
 	var videoMsgs []*model.VideoMSG
+	offset := (pn - 1) * favoriteVideoPageRows
+	count := favoriteVideoPageRows
 	err := db.Raw("SELECT `video_id`,`user_id`,`user_name`,`follow_count`,`follower_count`,`play_url`,`cover_url`,`favorite_count`,`comment_count`,`title` "+
 		"FROM `users` INNER JOIN `videos` "+
 		"ON `videos`.`author_id` = `user_id`"+
-		"where `video_id` in (select `favorites`.`video_id` from favorites where user_id = ?)", userID).Scan(&videoMsgs).Error
+		"where `video_id` in (select `favorites`.`video_id` from favorites where user_id = ?) limit ?,?", userID, offset, count).Scan(&videoMsgs).Error
 	if err != nil {
 		return nil, err
 	}

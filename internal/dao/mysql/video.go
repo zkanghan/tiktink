@@ -5,23 +5,29 @@ import (
 	"tiktink/pkg/tracer"
 )
 
+const (
+	videoPageRows = 20 //分页一页的页数
+)
+
 type videoFunc interface {
 	PublishVideo(video *model.Video) error
 	QueryVideoExist(videoID string) (bool, error)
-	QueryVideoByAuthorID(authorID string) ([]*model.VideoMSG, error)
+	QueryVideoByAuthorID(authorID string, pn int) ([]*model.VideoMSG, error)
 }
 
 type videoDealer struct {
 	Context *tracer.TraceCtx
 }
 
-func (v *videoDealer) QueryVideoByAuthorID(authorID string) ([]*model.VideoMSG, error) {
+func (v *videoDealer) QueryVideoByAuthorID(authorID string, pn int) ([]*model.VideoMSG, error) {
 	v.Context.TraceCaller()
 	var videoMsgs []*model.VideoMSG
+	offset := (pn - 1) * videoPageRows
+	count := videoPageRows
 	err := db.Raw("select `video_id`,`play_url`,`cover_url`,`favorite_count`,`comment_count`,`title`,"+
 		"`user_id`,`user_name`,`follow_count`,`follower_count`"+
 		"from `users` inner join `videos` on `videos`.`author_id`= `user_id`"+
-		"where `videos`.author_id = ?", authorID).Scan(&videoMsgs).Error
+		"where `videos`.author_id = ? limit ?,?", authorID, offset, count).Scan(&videoMsgs).Error
 	if err != nil {
 		return nil, err
 	}

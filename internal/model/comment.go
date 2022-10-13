@@ -34,7 +34,8 @@ type CommentActionResp struct {
 }
 
 type CommentListReq struct {
-	VideoID string `form:"video_id" binding:"required"`
+	VideoID   string `form:"video_id" binding:"required"`
+	PageCount int    `form:"pn" binding:"required"`
 }
 
 type CommentListResp struct {

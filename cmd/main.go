@@ -2,6 +2,7 @@ package main
 
 import (
 	"tiktink/internal/dao/mysql"
+	"tiktink/internal/dao/redis"
 	"tiktink/pkg/logger"
 	"tiktink/pkg/setting"
 	"tiktink/pkg/snowid"
@@ -33,7 +34,11 @@ func init() {
 
 	//MySQL配置初始化
 	if err := mysql.InitMysql(); err != nil {
-		panic("数据库初始化出错:  " + err.Error())
+		panic("MySQL初始化出错:  " + err.Error())
+	}
+
+	if err := redis.InitRedis(); err != nil {
+		panic("Redis初始化出错：" + err.Error())
 	}
 
 	if err := snowid.Init(); err != nil {

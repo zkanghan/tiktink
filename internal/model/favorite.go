@@ -17,7 +17,8 @@ type FavoriteActionReq struct {
 }
 
 type FavoriteListReq struct {
-	UserID string `form:"user_id" binding:"required"`
+	UserID     string `form:"user_id" binding:"required"`
+	PageNumber int    `form:"pn" binding:"required"`
 }
 
 type FavoriteListResp struct {

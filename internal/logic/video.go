@@ -29,7 +29,7 @@ type videoDealer struct {
 type videoFunc interface {
 	PublishVideo(video *model.PublishVideoReq, userID int64) error
 	GetIsVideoExist(videoID int64) (bool, error)
-	GetVideoList(userID int64, authorID int64) ([]*model.VideoMSG, error)
+	GetVideoList(userID int64, req model.PublishListReq) ([]*model.VideoMSG, error)
 }
 
 //var _ videoFunc = &videoDealer{}
@@ -107,9 +107,9 @@ func (v *videoDealer) GetIsVideoExist(videoID string) (bool, error) {
 	return mysql.NewVideoDealer(v.Context).QueryVideoExist(videoID)
 }
 
-func (v *videoDealer) GetVideoList(currentUserID string, authorID string) ([]*model.VideoMSG, error) {
+func (v *videoDealer) GetVideoList(currentUserID string, req model.PublishListReq) ([]*model.VideoMSG, error) {
 	v.Context.TraceCaller()
-	videoMsgs, err := mysql.NewVideoDealer(v.Context).QueryVideoByAuthorID(authorID)
+	videoMsgs, err := mysql.NewVideoDealer(v.Context).QueryVideoByAuthorID(req.UserID, req.PageNumber)
 	if err != nil {
 		return []*model.VideoMSG{}, err
 	}
@@ -127,7 +127,7 @@ func (v *videoDealer) GetVideoList(currentUserID string, authorID string) ([]*mo
 	// 转map便于查询
 	likedVideoIDsMap := tools.SliceIntToSet(likedVideoIDs)
 	// 判断当前用户是否关注视频作者
-	followed, err := NewRelationDealer(v.Context).GetIsFollowed(currentUserID, authorID)
+	followed, err := NewRelationDealer(v.Context).GetIsFollowed(currentUserID, req.UserID)
 	if err != nil {
 		return []*model.VideoMSG{}, err
 	}

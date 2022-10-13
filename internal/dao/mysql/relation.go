@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
-const pageRows int64 = 20
+const followPageRows int64 = 20
 
 func NewRelationDealer(ctx *tracer.TraceCtx) followFunc {
 	return &followDealer{
@@ -31,10 +31,10 @@ type followDealer struct {
 func (f *followDealer) QueryFansList(req *model.FollowListReq) ([]*model.UserMSG, error) {
 	f.Context.TraceCaller()
 	userMSGs := new([]*model.UserMSG)
-	begin := (req.PageCount - 1) * pageRows //展示记录的起点
-	end := pageRows                         //展示记录的终点
+	offset := (req.PageCount - 1) * followPageRows //展示记录的起点
+	count := followPageRows                        //展示记录的终点
 	err := db.Raw("SELECT `users`.`user_id`,`user_name`,`follow_count`,`follower_count` from `users` WHERE `users`.`user_id` IN (SELECT `user_id` FROM `follow` WHERE `follow`.`to_user_id` = ?) LIMIT ?,?",
-		req.UserID, begin, end).Scan(userMSGs).Error
+		req.UserID, offset, count).Scan(userMSGs).Error
 	if err != nil {
 		return nil, err
 	}
@@ -44,12 +44,12 @@ func (f *followDealer) QueryFansList(req *model.FollowListReq) ([]*model.UserMSG
 func (f *followDealer) QueryFollowList(req *model.FollowListReq) ([]*model.UserMSG, error) {
 	f.Context.TraceCaller()
 	userMSGs := new([]*model.UserMSG)
-	begin := (req.PageCount - 1) * pageRows //展示记录的起点
-	end := pageRows                         //展示记录的终点
+	offset := (req.PageCount - 1) * followPageRows //展示记录的起点
+	count := followPageRows                        //展示记录的终点
 	err := db.Raw("SELECT `user_id`,`user_name`,`follow_count`,`follower_count`FROM `users` "+
 		"WHERE `users`.`user_id` "+
 		"IN (SELECT `to_user_id` FROM `follow` WHERE `follow`.`user_id` = ?) "+
-		"LIMIT ?,?", req.UserID, begin, end).Scan(userMSGs).Error
+		"LIMIT ?,?", req.UserID, offset, count).Scan(userMSGs).Error
 	if err != nil {
 		return nil, err
 	}

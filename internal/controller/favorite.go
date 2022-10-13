@@ -89,7 +89,7 @@ func FavoriteList(c *gin.Context) {
 		badRespFavoriteList(c, code.UserNotExist)
 		return
 	}
-	videoList, err := logic.NewFavoriteDealer(background.Clear().TraceCaller()).GetFavoriteList(req.UserID)
+	videoList, err := logic.NewFavoriteDealer(background.Clear().TraceCaller()).GetFavoriteList(*req)
 	if err != nil {
 		badRespFavoriteList(c, code.ServeBusy)
 		logger.PrintLogWithCTX("获取点赞列表出错:", err, background)

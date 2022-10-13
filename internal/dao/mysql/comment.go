@@ -8,23 +8,29 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	commentPageRows = 20
+)
+
 type commentFunc interface {
 	CreateComment(videoID string, userID string, content string) (*model.Comment, error)
 	DeleteComment(videoID string, CommentID string, userID string) (int64, error)
-	QueryCommentList(videoID string) ([]*model.CommentMSG, error)
+	QueryCommentList(videoID string, pn int) ([]*model.CommentMSG, error)
 }
 
 type commentDealer struct {
 	Context *tracer.TraceCtx
 }
 
-func (c *commentDealer) QueryCommentList(videoID string) ([]*model.CommentMSG, error) {
+func (c *commentDealer) QueryCommentList(videoID string, pn int) ([]*model.CommentMSG, error) {
 	c.Context.TraceCaller()
 	var commentMsg []*model.CommentMSG
+	offset := (pn - 1) * commentPageRows
+	count := commentPageRows
 	err := db.Raw("select `user_id`,`user_name`,`follow_count`,`follower_count`,`comment_id`,"+
 		"`content`,`comments`.`create_date`"+
 		"from `users` inner join   `comments` "+
-		"on  `comments`.author_id=`user_id` where `comments`.video_id = ?", videoID).Scan(&commentMsg).Error
+		"on  `comments`.author_id=`user_id` where `comments`.video_id = ? limit ?,?", videoID, offset, count).Scan(&commentMsg).Error
 	if err != nil {
 		return nil, err
 	}
