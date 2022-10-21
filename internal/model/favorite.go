@@ -26,3 +26,9 @@ type FavoriteListResp struct {
 	StatusMsg  string       `json:"status_msg"`
 	VideoList  []*VideoMSG  `json:"video_list"`
 }
+
+type FavoriteRedis struct {
+	UserID  string `json:"UserID"`
+	VideoID string `json:"VideoID"`
+	Status  string `json:"Status"`
+}

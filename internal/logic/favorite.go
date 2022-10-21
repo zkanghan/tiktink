@@ -2,6 +2,7 @@ package logic
 
 import (
 	"tiktink/internal/dao/mysql"
+	"tiktink/internal/dao/redis"
 	"tiktink/internal/model"
 	"tiktink/pkg/tools"
 	"tiktink/pkg/tracer"
@@ -11,7 +12,7 @@ type favoriteDealer struct {
 	Context *tracer.TraceCtx
 }
 type favoriteFunc interface {
-	GetIsLiked(userID string, videoID string) (bool, error)
+	GetMySQLIsLiked(userID string, videoID string) (bool, error)
 }
 
 var _ favoriteFunc = &favoriteDealer{}
@@ -22,22 +23,22 @@ func NewFavoriteDealer(ctx *tracer.TraceCtx) *favoriteDealer {
 	}
 }
 
-func (f *favoriteDealer) GetIsLiked(userID string, videoID string) (bool, error) {
+func (f *favoriteDealer) GetMySQLIsLiked(userID string, videoID string) (bool, error) {
 	f.Context.TraceCaller()
 	return mysql.NewFavoriteDealer(f.Context).QueryIsLiked(userID, videoID)
 }
 
-func (f *favoriteDealer) DoFavorite(userID string, videoID string) error {
+func (f *favoriteDealer) DoMySQLFavorite(userID string, videoID string) error {
 	f.Context.TraceCaller()
 	return mysql.NewFavoriteDealer(f.Context).DoFavorite(userID, videoID)
 }
 
-func (f *favoriteDealer) CancelFavorite(userID string, videoID string) error {
+func (f *favoriteDealer) CancelMySQLFavorite(userID string, videoID string) error {
 	f.Context.TraceCaller()
 	return mysql.NewFavoriteDealer(f.Context).CancelFavorite(userID, videoID)
 }
 
-func (f *favoriteDealer) GetFavoriteList(req model.FavoriteListReq) ([]*model.VideoMSG, error) {
+func (f *favoriteDealer) GetMySQLFavoriteList(req model.FavoriteListReq) ([]*model.VideoMSG, error) {
 	f.Context.TraceCaller()
 	videoMsgS, err := mysql.NewFavoriteDealer(f.Context).QueryFavoriteList(req.UserID, req.PageNumber)
 	if err != nil {
@@ -56,12 +57,35 @@ func (f *favoriteDealer) GetFavoriteList(req model.FavoriteListReq) ([]*model.Vi
 	}
 	followedUserMap := tools.SliceIntToSet(followedUsers)
 
-	//  todo: 把循环去掉改为一次查询,这里dao的favorite也要重构
-
 	for _, videoMsg := range videoMsgS {
 		_, followed := followedUserMap[videoMsg.UserMSG.UserID]
 		videoMsg.UserMSG.IsFollow = followed
 		videoMsg.IsFavorite = true
 	}
 	return videoMsgS, nil
+}
+
+func (f *favoriteDealer) GetRedisFavoriteVal(userID string, videoID string) (model.FavoriteRedis, error) {
+	fr := model.FavoriteRedis{
+		UserID:  userID,
+		VideoID: videoID,
+	}
+	dealer := redis.NewFavoriteDealer()
+	m, err := dealer.GetFavoriteVal(redis.GetFavoriteKey(fr))
+	if err != nil {
+		return model.FavoriteRedis{}, err
+	}
+	if err = tools.MapToStruct(m, &fr); err != nil {
+		return model.FavoriteRedis{}, err
+	}
+	return fr, nil
+}
+
+func (f *favoriteDealer) SetRedisKey(userID string, videoID string, status string) error {
+	dealer := redis.NewFavoriteDealer()
+	return dealer.SetFavoriteKey(model.FavoriteRedis{
+		UserID:  userID,
+		VideoID: videoID,
+		Status:  status,
+	})
 }

@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"tiktink/internal/code"
 	"tiktink/internal/logic"
 	"tiktink/internal/middleware"
@@ -19,6 +20,7 @@ const (
 	cancelLike int8 = 2
 )
 
+// FavoriteAction 点赞行为
 func FavoriteAction(c *gin.Context) {
 	req := new(model.FavoriteActionReq)
 	if err := c.ShouldBind(req); err != nil {
@@ -26,36 +28,26 @@ func FavoriteAction(c *gin.Context) {
 		return
 	}
 	background := tracer.Background().TraceCaller()
-	// 查询是否点赞了
+	// 使用redis不要查询直接set
 	userID := c.GetString(middleware.CtxUserIDtxKey)
-	liked, err := logic.NewFavoriteDealer(background).GetIsLiked(userID, req.VideoID)
+
+	//  安全验证videoID是存在的
+	exsit, err := logic.NewVideoDealer(background.Clear()).GetIsVideoExist(req.VideoID)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, code.ServeBusy)
-		logger.PrintLogWithCTX("查询点赞错误:", err, background)
+		logger.PrintLogWithCTX("查询视频存在失败:", err, background)
 		return
 	}
-	if req.ActionType == doLike {
-		if liked {
-			response.Error(c, http.StatusBadRequest, code.RepeatLiked)
-			return
-		}
-		if err := logic.NewFavoriteDealer(background.Clear().TraceCaller()).DoFavorite(userID, req.VideoID); err != nil {
-			response.Error(c, http.StatusInternalServerError, code.ServeBusy)
-			logger.PrintLogWithCTX("用户点赞操作失败:", err, background)
-			return
-		}
-	} else if req.ActionType == cancelLike {
-		if !liked {
-			response.Error(c, http.StatusBadRequest, code.RepeatUnLiked)
-			return
-		}
-		if err := logic.NewFavoriteDealer(background.Clear().TraceCaller()).CancelFavorite(userID, req.VideoID); err != nil {
-			response.Error(c, http.StatusInternalServerError, code.ServeBusy)
-			logger.PrintLogWithCTX("用户取消点赞失败:", err, background)
-			return
-		}
-	} else {
-		response.Error(c, http.StatusBadRequest, code.InvalidParam)
+	if !exsit {
+		c.JSON(http.StatusBadRequest, response.RESP{
+			StatusCode: 0,
+			StatusMsg:  "视频不存在",
+		})
+	}
+	err = logic.NewFavoriteDealer(background).SetRedisKey(userID, req.VideoID, strconv.Itoa(int(req.ActionType)))
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, code.ServeBusy)
+		logger.PrintLogWithCTX("redis点赞失败:", err, background)
 		return
 	}
 	c.JSON(http.StatusOK, response.RESP{
@@ -89,7 +81,7 @@ func FavoriteList(c *gin.Context) {
 		badRespFavoriteList(c, code.UserNotExist)
 		return
 	}
-	videoList, err := logic.NewFavoriteDealer(background.Clear().TraceCaller()).GetFavoriteList(*req)
+	videoList, err := logic.NewFavoriteDealer(background.Clear().TraceCaller()).GetMySQLFavoriteList(*req)
 	if err != nil {
 		badRespFavoriteList(c, code.ServeBusy)
 		logger.PrintLogWithCTX("获取点赞列表出错:", err, background)
