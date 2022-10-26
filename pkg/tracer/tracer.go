@@ -1,35 +1,12 @@
 package tracer
 
 import (
-	"runtime"
+	"fmt"
+
+	"github.com/pkg/errors"
 )
 
-type TraceCtx struct {
-	FuncLink []string //函数的调用链路
-}
-
-func (ctx TraceCtx) ToString() string {
-	var ans string
-	for index, valueStr := range ctx.FuncLink { //下标和值
-		if index != len(ctx.FuncLink)-1 {
-			ans += valueStr + " --> "
-		} else {
-			ans += valueStr
-		}
-	}
-	return ans
-}
-
-// TraceCaller 此方法记录调用该方法的函数信息并保存在FuncLink中
-func (ctx *TraceCtx) TraceCaller() *TraceCtx {
-	funcPc, _, _, ok := runtime.Caller(1)
-	if !ok {
-		return nil
-	}
-	callerName := runtime.FuncForPC(funcPc).Name()
-	ctx.FuncLink = append(ctx.FuncLink, callerName)
-	return ctx
-}
+type TraceCtx struct{}
 
 // Background 返回空TraceContext
 func Background() *TraceCtx {
@@ -38,6 +15,33 @@ func Background() *TraceCtx {
 
 // Clear 清空结构体信息并返回
 func (ctx *TraceCtx) Clear() *TraceCtx {
-	ctx.FuncLink = ctx.FuncLink[0:0]
-	return ctx
+	return &TraceCtx{}
+}
+
+func FormatParam(args ...interface{}) string {
+	s := "Parameter: "
+	for _, arg := range args {
+		s = s + fmt.Sprintf("%+v   ", arg)
+	}
+	return fmt.Sprintf("{%s}", s)
+}
+
+type stackTracer interface {
+	StackTrace() errors.StackTrace
+}
+
+func FormatErr(err error) (s string) {
+	e, ok := err.(stackTracer)
+	if !ok {
+		return err.Error()
+	}
+	//类型断言,检查error接口中的动态值是否实现了stackTracer接口。如果实现了返回类型为stackTracer的接口
+	st := e.StackTrace()
+	for i, frame := range st {
+		if i == len(st)-1 {
+			break
+		}
+		s = s + fmt.Sprintf("%n  <-- ", frame)
+	}
+	return s
 }

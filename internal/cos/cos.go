@@ -7,14 +7,14 @@ import (
 	"net/url"
 	"tiktink/pkg/tracer"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"github.com/tencentyun/cos-go-sdk-v5"
 )
 
 // PublishFileToServer  url := https://tiktink-1311932295.cos.ap-nanjing.myqcloud.com
 //  上传视频，调用腾讯云的第三方库
-func PublishFileToServer(r io.Reader, key string, ctx *tracer.TraceCtx) (string, error) {
-	ctx.TraceCaller()
+func PublishFileToServer(r io.Reader, key string) (string, error) {
 	// 存储桶名称，由bucketname-appid 组成，appid必须填入，可以在COS控制台查看存储桶名称。https://console.cloud.tencent.com/cos5/bucket
 	// COS_REGION 可以在控制台查看，https://console.cloud.tencent.com/cos5/bucket, 关于地域的详情见 https://cloud.tencent.com/document/product/436/6224
 	u, _ := url.Parse("https://tiktink-1311932295.cos.ap-nanjing.myqcloud.com")
@@ -30,7 +30,7 @@ func PublishFileToServer(r io.Reader, key string, ctx *tracer.TraceCtx) (string,
 	// 3.通过文件流上传对象
 	_, err := c.Object.Put(context.Background(), key, r, nil)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, tracer.FormatParam(r, key))
 	}
 	//   返回可供访问的url
 	return c.Object.GetObjectURL(key).String(), nil

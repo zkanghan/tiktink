@@ -28,10 +28,10 @@ func PublishVideo(c *gin.Context) {
 	//  获取用户id
 	userID := c.GetString(middleware.CtxUserIDtxKey)
 	//  交付逻辑层处理
-	background := tracer.Background().TraceCaller()
+	background := tracer.Background()
 
 	if err := logic.NewVideoDealer(background).PublishVideo(video, userID); err != nil {
-		logger.PrintLogWithCTX("文件上传失败:", err, background)
+		logger.PrintWithStack(err)
 		response.Error(c, http.StatusInternalServerError, code.ServeBusy)
 		return
 	}
@@ -55,11 +55,11 @@ func PublishList(c *gin.Context) {
 		return
 	}
 	userID := c.GetString(middleware.CtxUserIDtxKey)
-	background := tracer.Background().TraceCaller()
+	background := tracer.Background()
 	videoList, err := logic.NewVideoDealer(background).GetVideoList(userID, req)
 	if err != nil {
 		badPublishListResp(c, code.ServeBusy)
-		logger.PrintLogWithCTX("获取视频列表错误:", err, background)
+		logger.PrintWithStack(err)
 		return
 	}
 	c.JSON(http.StatusOK, model.PublishListResp{

@@ -26,10 +26,9 @@ func NewFeedDealer(ctx *tracer.TraceCtx) *feedDealer {
 
 // GetFeed 限制返回视频的最新时间要小于latestTime，即用户观看视频的顺序是从新到久
 func (f *feedDealer) GetFeed(userID *string, latestTime int64) ([]*model.VideoMSG, time.Time, error) {
-	f.Context.TraceCaller()
 	//  获取videoList
 	timeStr := time.Unix(latestTime, 0).Format("2006-01-02 15:04:05")
-	videoList, err := mysql.NewFeedDealer(f.Context).QueryFeedWithTime(timeStr)
+	videoList, err := mysql.NewFeedDealer().QueryFeedWithTime(timeStr)
 	if err != nil {
 		return nil, time.Now(), err
 	}
@@ -46,12 +45,12 @@ func (f *feedDealer) GetFeed(userID *string, latestTime int64) ([]*model.VideoMS
 			videoIDs = append(videoIDs, video.VideoID)
 		}
 		//  查询作者id中有哪些user关注了的
-		followedUsers, err := mysql.NewRelationDealer(f.Context).QueryListIsFollow(*userID, toUsersIDs)
+		followedUsers, err := mysql.NewRelationDealer().QueryListIsFollow(*userID, toUsersIDs)
 		if err != nil {
 			return []*model.VideoMSG{}, time.Now(), err
 		}
 		// 查询视频id中有哪些user点赞了
-		likedVideos, err := mysql.NewFavoriteDealer(f.Context).QueryListIsLiked(*userID, videoIDs)
+		likedVideos, err := mysql.NewFavoriteDealer().QueryListIsLiked(*userID, videoIDs)
 		if err != nil {
 			return []*model.VideoMSG{}, time.Now(), err
 		}
@@ -74,7 +73,7 @@ func (f *feedDealer) GetFeed(userID *string, latestTime int64) ([]*model.VideoMS
 
 	//  获得本次视频列表中发布时间最早的
 	index := len(videoList)
-	newLatestTime, err := mysql.NewFeedDealer(f.Context).QueryLatestTimeByID(videoList[index-1].VideoID)
+	newLatestTime, err := mysql.NewFeedDealer().QueryLatestTimeByID(videoList[index-1].VideoID)
 	if err != nil {
 		return nil, time.Now(), err
 	}

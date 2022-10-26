@@ -38,12 +38,12 @@ func CommentAction(c *gin.Context) {
 		badCommentActionResp(c, code.InvalidParam)
 		return
 	}
-	backgroundCTX := tracer.Background().TraceCaller() //新建上下文并追踪本函数
+	backgroundCTX := tracer.Background() //新建上下文并追踪本函数
 	//  根据视频id判断视频是否存在
 
 	videoExist, err := logic.NewVideoDealer(backgroundCTX).GetIsVideoExist(req.VideoID)
 	if err != nil {
-		logger.PrintLogWithCTX("查询视频失败:", err, backgroundCTX)
+		logger.PrintWithStack(err)
 		badCommentActionResp(c, code.ServeBusy)
 		return
 	}
@@ -59,10 +59,10 @@ func CommentAction(c *gin.Context) {
 			return
 		}
 
-		commentMsg, err := logic.NewCommentDealer(backgroundCTX.Clear().TraceCaller()).ReleaseComment(req, userID)
+		commentMsg, err := logic.NewCommentDealer(backgroundCTX).ReleaseComment(req, userID)
 		if err != nil {
 			badCommentActionResp(c, code.ServeBusy)
-			logger.PrintLogWithCTX("发布评论失败:", err, backgroundCTX)
+			logger.PrintWithStack(err)
 			return
 		}
 		c.JSON(http.StatusOK, &model.CommentActionResp{
@@ -72,10 +72,10 @@ func CommentAction(c *gin.Context) {
 		})
 
 	case deleteComment:
-		deleteSuccess, err := logic.NewCommentDealer(backgroundCTX.Clear().TraceCaller()).DeleteComment(req.VideoID, req.CommentID, userID)
+		deleteSuccess, err := logic.NewCommentDealer(backgroundCTX).DeleteComment(req.VideoID, req.CommentID, userID)
 		if err != nil {
 			badCommentActionResp(c, code.ServeBusy)
-			logger.PrintLogWithCTX("删除评论失败:", err, backgroundCTX)
+			logger.PrintWithStack(err)
 			return
 		}
 		if !deleteSuccess {
@@ -83,8 +83,8 @@ func CommentAction(c *gin.Context) {
 			return
 		}
 		c.JSON(http.StatusOK, &model.CommentActionResp{
-			StatusCode: 0,
-			StatusMsg:  "success",
+			StatusCode: code.Success,
+			StatusMsg:  code.Success.MSG(),
 		})
 	default:
 		badCommentActionResp(c, code.InvalidParam)
@@ -98,18 +98,18 @@ func CommentList(c *gin.Context) {
 		badCommentListResp(c, code.InvalidParam)
 		return
 	}
-	background := tracer.Background().TraceCaller() //  new context message
+	background := tracer.Background()
 
 	userID := c.GetString(middleware.CtxUserIDtxKey)
 	commentList, err := logic.NewCommentDealer(background).GetCommentList(*req, userID)
 	if err != nil {
 		badCommentListResp(c, code.ServeBusy)
-		logger.PrintLogWithCTX("获取评论列表失败:", err, background)
+		logger.PrintWithStack(err)
 		return
 	}
 	c.JSON(http.StatusOK, model.CommentListResp{
-		StatusCode:  0,
-		StatusMsg:   "success",
+		StatusCode:  code.Success,
+		StatusMsg:   code.Success.MSG(),
 		CommentList: commentList,
 	})
 }

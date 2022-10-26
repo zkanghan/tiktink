@@ -31,23 +31,19 @@ func NewRelationDealer(ctx *tracer.TraceCtx) *relationDealer {
 }
 
 func (r *relationDealer) GetIsFollowed(UserID string, ToUserID string) (bool, error) {
-	r.Context.TraceCaller()
-	return mysql.NewRelationDealer(r.Context).QueryIsFollow(UserID, ToUserID)
+	return mysql.NewRelationDealer().QueryIsFollow(UserID, ToUserID)
 }
 
 func (r *relationDealer) DoFollow(UserID string, ToUserID string) error {
-	r.Context.TraceCaller()
-	return mysql.NewRelationDealer(r.Context).DoFollow(UserID, ToUserID)
+	return mysql.NewRelationDealer().DoFollow(UserID, ToUserID)
 }
 
 func (r *relationDealer) DoCancelFollow(UserID string, ToUserID string) error {
-	r.Context.TraceCaller()
-	return mysql.NewRelationDealer(r.Context).DoCancelFollow(UserID, ToUserID)
+	return mysql.NewRelationDealer().DoCancelFollow(UserID, ToUserID)
 }
 
 func (r *relationDealer) GetFollowList(aUserID string, req *model.FollowListReq) ([]*model.UserMSG, error) {
-	r.Context.TraceCaller()
-	userMSGs, err := mysql.NewRelationDealer(r.Context).QueryFollowList(req)
+	userMSGs, err := mysql.NewRelationDealer().QueryFollowList(req)
 	if err != nil {
 		return []*model.UserMSG{}, err
 	}
@@ -57,7 +53,7 @@ func (r *relationDealer) GetFollowList(aUserID string, req *model.FollowListReq)
 		toUserIDs = append(toUserIDs, user.UserID)
 	}
 	//  查询user关注了切片中的哪些人
-	followedUserIDs, err := mysql.NewRelationDealer(r.Context).QueryListIsFollow(aUserID, toUserIDs)
+	followedUserIDs, err := mysql.NewRelationDealer().QueryListIsFollow(aUserID, toUserIDs)
 	//  切片转map便于判断
 	followedUserIDsMap := tools.SliceIntToSet(followedUserIDs)
 	for _, userMsg := range userMSGs {
@@ -68,8 +64,7 @@ func (r *relationDealer) GetFollowList(aUserID string, req *model.FollowListReq)
 }
 
 func (r *relationDealer) GetFansList(aUserID string, req *model.FollowListReq) ([]*model.UserMSG, error) {
-	r.Context.TraceCaller()
-	userMSGs, err := mysql.NewRelationDealer(r.Context).QueryFansList(req)
+	userMSGs, err := mysql.NewRelationDealer().QueryFansList(req)
 	if err != nil {
 		return []*model.UserMSG{}, err
 	}
@@ -80,7 +75,7 @@ func (r *relationDealer) GetFansList(aUserID string, req *model.FollowListReq) (
 		toUserIDs = append(toUserIDs, user.UserID)
 	}
 	//  查询user关注了切片中的哪些人
-	followedUserIDs, err := mysql.NewRelationDealer(r.Context).QueryListIsFollow(aUserID, toUserIDs)
+	followedUserIDs, err := mysql.NewRelationDealer().QueryListIsFollow(aUserID, toUserIDs)
 	//  切片转map便于判断
 	followedUserIDsMap := tools.SliceIntToSet(followedUserIDs)
 	for _, userMsg := range userMSGs {

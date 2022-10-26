@@ -27,13 +27,12 @@ func NewCommentDealer(ctx *tracer.TraceCtx) *commentDealer {
 
 // ReleaseComment 指针类型的方法接收者修改才是有效的
 func (c *commentDealer) ReleaseComment(req *model.CommentActionReq, userID string) (*model.CommentMSG, error) {
-	c.Context.TraceCaller() // save context message
 
-	comment, err := mysql.NewCommentDealer(c.Context).CreateComment(req.VideoID, userID, req.CommentText)
+	comment, err := mysql.NewCommentDealer().CreateComment(req.VideoID, userID, req.CommentText)
 	if err != nil {
 		return nil, err
 	}
-	userMsg, err := mysql.NewUserDealer(c.Context).QueryUserByID(userID)
+	userMsg, err := mysql.NewUserDealer().QueryUserByID(userID)
 	if err != nil {
 		return nil, err
 	}
@@ -50,20 +49,17 @@ func (c *commentDealer) ReleaseComment(req *model.CommentActionReq, userID strin
 
 // DeleteComment 评论删除成功返回true
 func (c *commentDealer) DeleteComment(videoID string, commentID string, userID string) (bool, error) {
-	c.Context.TraceCaller() //save context message
 
-	affectRows, err := mysql.NewCommentDealer(c.Context).DeleteComment(videoID, commentID, userID)
+	affectRows, err := mysql.NewCommentDealer().DeleteComment(videoID, commentID, userID)
 	if err != nil {
 		return false, err
 	}
 	return affectRows > 0, nil
 }
 
-// TODO:限制一次查询的评论数
 func (c *commentDealer) GetCommentList(req model.CommentListReq, currentUserID string) ([]*model.CommentMSG, error) {
-	c.Context.TraceCaller()
 
-	commentMsgs, err := mysql.NewCommentDealer(c.Context).QueryCommentList(req.VideoID, req.PageCount)
+	commentMsgs, err := mysql.NewCommentDealer().QueryCommentList(req.VideoID, req.PageCount)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +70,7 @@ func (c *commentDealer) GetCommentList(req model.CommentListReq, currentUserID s
 		toUserIDs = append(toUserIDs, comment.UserID)
 	}
 	//  获取评论者在userID关注了哪些
-	followedUsers, err := mysql.NewRelationDealer(c.Context).QueryListIsFollow(currentUserID, toUserIDs)
+	followedUsers, err := mysql.NewRelationDealer().QueryListIsFollow(currentUserID, toUserIDs)
 	if err != nil {
 		return []*model.CommentMSG{}, err
 	}

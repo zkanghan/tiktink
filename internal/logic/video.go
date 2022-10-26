@@ -27,22 +27,19 @@ type videoDealer struct {
 }
 
 type videoFunc interface {
-	PublishVideo(video *model.PublishVideoReq, userID int64) error
-	GetIsVideoExist(videoID int64) (bool, error)
-	GetVideoList(userID int64, req model.PublishListReq) ([]*model.VideoMSG, error)
+	PublishVideo(video *model.PublishVideoReq, userID string) error
+	GetIsVideoExist(videoID string) (bool, error)
+	GetVideoList(userID string, req model.PublishListReq) ([]*model.VideoMSG, error)
 }
 
-//var _ videoFunc = &videoDealer{}
-
-func NewVideoDealer(ctx *tracer.TraceCtx) *videoDealer {
+func NewVideoDealer(ctx *tracer.TraceCtx) videoFunc {
 	return &videoDealer{
 		Context: ctx,
 	}
 }
 
 //  文件上传之后生成缩略图并上传           返回缩略图在云上的访问路径
-func generateCover(videoPath string, coverID string, ctx *tracer.TraceCtx) (string, error) {
-	ctx.TraceCaller()
+func generateCover(videoPath string, coverID string) (string, error) {
 	buf := bytes.NewBuffer(nil)
 	err := ffmpeg.Input(videoPath).
 		Filter("select", ffmpeg.Args{fmt.Sprintf("gte(n,%d)", 1)}).
@@ -53,7 +50,7 @@ func generateCover(videoPath string, coverID string, ctx *tracer.TraceCtx) (stri
 		panic(err)
 	}
 	coverDst := filePreImage + coverID + fileSuffixImage
-	coverURL, err := cos.PublishFileToServer(buf, coverDst, ctx)
+	coverURL, err := cos.PublishFileToServer(buf, coverDst)
 	if err != nil {
 		return "", err
 	}
@@ -61,7 +58,6 @@ func generateCover(videoPath string, coverID string, ctx *tracer.TraceCtx) (stri
 }
 
 func (v *videoDealer) PublishVideo(video *model.PublishVideoReq, userID string) error {
-	v.Context.TraceCaller()
 	//  生成视频唯一id，并拼接对象存储唯一key
 	videoID := snowid.GenID()
 	coverID := snowid.GenID()
@@ -74,13 +70,13 @@ func (v *videoDealer) PublishVideo(video *model.PublishVideoReq, userID string) 
 	}
 	defer videoFile.Close()
 	//  把文件上传到腾讯云
-	videoURL, err := cos.PublishFileToServer(videoFile, videoServeDst, v.Context)
+	videoURL, err := cos.PublishFileToServer(videoFile, videoServeDst)
 	if err != nil {
 		zap.L().Error("视频文件上传服务器失败：", zap.Error(err))
 		return err
 	}
 	//  再最后试一下，生成缩略图并上传
-	coverURL, err := generateCover(videoURL, coverID, v.Context)
+	coverURL, err := generateCover(videoURL, coverID)
 	if err != nil {
 		zap.L().Error("生成视频缩略图失败：", zap.Error(err))
 		return err
@@ -94,7 +90,7 @@ func (v *videoDealer) PublishVideo(video *model.PublishVideoReq, userID string) 
 		CoverURL: coverURL,
 		ImageID:  coverID,
 	}
-	err = mysql.NewVideoDealer(v.Context).PublishVideo(videoModel)
+	err = mysql.NewVideoDealer().PublishVideo(videoModel)
 	if err != nil {
 		zap.L().Error("视频存储数据库出错：", zap.Error(err))
 		return err
@@ -103,13 +99,11 @@ func (v *videoDealer) PublishVideo(video *model.PublishVideoReq, userID string) 
 }
 
 func (v *videoDealer) GetIsVideoExist(videoID string) (bool, error) {
-	v.Context.TraceCaller()
-	return mysql.NewVideoDealer(v.Context).QueryVideoExist(videoID)
+	return mysql.NewVideoDealer().QueryVideoExist(videoID)
 }
 
 func (v *videoDealer) GetVideoList(currentUserID string, req model.PublishListReq) ([]*model.VideoMSG, error) {
-	v.Context.TraceCaller()
-	videoMsgs, err := mysql.NewVideoDealer(v.Context).QueryVideoByAuthorID(req.UserID, req.PageNumber)
+	videoMsgs, err := mysql.NewVideoDealer().QueryVideoByAuthorID(req.UserID, req.PageNumber)
 	if err != nil {
 		return []*model.VideoMSG{}, err
 	}
@@ -120,7 +114,7 @@ func (v *videoDealer) GetVideoList(currentUserID string, req model.PublishListRe
 		videoIDs = append(videoIDs, video.VideoID)
 	}
 	//  查询当前用户是否点赞了哪些视频列表中的视频
-	likedVideoIDs, err := mysql.NewFavoriteDealer(v.Context).QueryListIsLiked(currentUserID, videoIDs)
+	likedVideoIDs, err := mysql.NewFavoriteDealer().QueryListIsLiked(currentUserID, videoIDs)
 	if err != nil {
 		return []*model.VideoMSG{}, err
 	}

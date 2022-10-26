@@ -9,8 +9,7 @@ import (
 )
 
 // HashPassword 返回加密后的密码
-func hashPassword(password string, ctx *tracer.TraceCtx) (string, error) {
-	ctx.TraceCaller()
+func hashPassword(password string) (string, error) {
 	toHash := []byte(password)
 	hashedPas, err := bcrypt.GenerateFromPassword(toHash, bcrypt.DefaultCost)
 	if err != nil {
@@ -21,8 +20,7 @@ func hashPassword(password string, ctx *tracer.TraceCtx) (string, error) {
 }
 
 // ComparePassword 返回的error非空表示密码不匹配
-func comparePassword(hashedPass string, password string, ctx *tracer.TraceCtx) error {
-	ctx.TraceCaller()
+func comparePassword(hashedPass string, password string) error {
 	hashedPassByte := []byte(hashedPass)
 	passwordByte := []byte(password)
 	return bcrypt.CompareHashAndPassword(hashedPassByte, passwordByte)
@@ -32,17 +30,15 @@ type userDealer struct {
 	Context *tracer.TraceCtx
 }
 
-//var _ userFunc = &userDealer{}
-
 type userFunc interface {
-	CreateUser(username string, password string) (int64, error)
-	CheckUser(username, password string) (bool, int64, error)
+	CreateUser(username string, password string) (string, error)
+	CheckUser(username, password string) (bool, string, error)
 	GetUserExistByName(username string) (bool, error)
-	GetUserExistByID(id int64) (bool, error)
-	GetUserInformation(toQueryUserID int64, userID int64) (*model.UserMSG, error)
+	GetUserExistByID(id string) (bool, error)
+	GetUserInformation(toQueryUserID string, userID string) (*model.UserMSG, error)
 }
 
-func NewUserDealer(ctx *tracer.TraceCtx) *userDealer {
+func NewUserDealer(ctx *tracer.TraceCtx) userFunc {
 	return &userDealer{
 		Context: ctx,
 	}
@@ -50,25 +46,23 @@ func NewUserDealer(ctx *tracer.TraceCtx) *userDealer {
 
 func (u *userDealer) CreateUser(username string, password string) (string, error) {
 	//  还要查询用户是不是已经存在
-	u.Context.TraceCaller()
-	hashedPassword, err := hashPassword(password, u.Context)
+	hashedPassword, err := hashPassword(password)
 	if err != nil {
 		return "", err
 	}
-	return mysql.NewUserDealer(u.Context).CreateUser(username, hashedPassword)
+	return mysql.NewUserDealer().CreateUser(username, hashedPassword)
 }
 
 // CheckUser 校验用户用户名和密码是否正确，正确返回用户id
 func (u *userDealer) CheckUser(username, password string) (bool, string, error) {
-	u.Context.TraceCaller()
-	todo := mysql.NewUserDealer(u.Context)
+	todo := mysql.NewUserDealer()
 	//  从数据库获取密码
 	DBpassword, id, err := todo.QueryLoginParams(username)
 	if err != nil {
 		return false, "", err
 	}
 	//  密码匹配错误，非运行异常
-	if err := comparePassword(DBpassword, password, u.Context); err != nil {
+	if err := comparePassword(DBpassword, password); err != nil {
 		return false, "", nil
 	}
 	return true, id, nil
@@ -76,18 +70,15 @@ func (u *userDealer) CheckUser(username, password string) (bool, string, error) 
 
 // GetUserExistByName 返回true表示用户存在，false表示不存在
 func (u *userDealer) GetUserExistByName(username string) (bool, error) {
-	u.Context.TraceCaller()
-	return mysql.NewUserDealer(u.Context).QueryUserExistByName(username)
+	return mysql.NewUserDealer().QueryUserExistByName(username)
 }
 
 func (u *userDealer) GetUserExistByID(id string) (bool, error) {
-	u.Context.TraceCaller()
-	return mysql.NewUserDealer(u.Context).QueryUserExistByID(id)
+	return mysql.NewUserDealer().QueryUserExistByID(id)
 }
 
 func (u *userDealer) GetUserInformation(toQueryUserID string, userID string) (*model.UserMSG, error) {
-	u.Context.TraceCaller()
-	userMsg, err := mysql.NewUserDealer(u.Context).QueryUserByID(toQueryUserID)
+	userMsg, err := mysql.NewUserDealer().QueryUserByID(toQueryUserID)
 	if err != nil {
 		return nil, err
 	}

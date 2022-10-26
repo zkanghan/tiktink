@@ -30,13 +30,13 @@ func RelationAction(c *gin.Context) {
 		response.Error(c, http.StatusBadRequest, code.FollowSelf)
 		return
 	}
-	background := tracer.Background().TraceCaller()
+	background := tracer.Background()
 
 	//  若关注的对象不存在
 	toUserExist, err := logic.NewUserDealer(background).GetUserExistByID(req.ToUserID)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, code.ServeBusy)
-		logger.PrintLogWithCTX("查询用户是否存在失败:", err, background)
+		logger.PrintWithStack(err)
 		return
 	}
 	if toUserExist == false {
@@ -44,10 +44,10 @@ func RelationAction(c *gin.Context) {
 		return
 	}
 	//  若用户正常使用，是无法做出重复关注或重复取消关注操作的，对这类请求直接返回操作失败即可
-	isFollowed, err := logic.NewRelationDealer(background.Clear().TraceCaller()).GetIsFollowed(userID, req.ToUserID)
+	isFollowed, err := logic.NewRelationDealer(background).GetIsFollowed(userID, req.ToUserID)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, code.ServeBusy)
-		logger.PrintLogWithCTX("查询用户是否关注失败:", err, background)
+		logger.PrintWithStack(err)
 		return
 	}
 	if req.ActionType == doFollow {
@@ -57,9 +57,9 @@ func RelationAction(c *gin.Context) {
 			return
 		}
 		//真正进行关注操作
-		if err := logic.NewRelationDealer(background.Clear().TraceCaller()).DoFollow(userID, req.ToUserID); err != nil {
+		if err := logic.NewRelationDealer(background).DoFollow(userID, req.ToUserID); err != nil {
 			response.Error(c, http.StatusInternalServerError, code.ServeBusy)
-			logger.PrintLogWithCTX("关注用户操作失败:", err, background)
+			logger.PrintWithStack(err)
 			return
 		}
 		c.JSON(http.StatusOK, &response.RESP{
@@ -73,9 +73,9 @@ func RelationAction(c *gin.Context) {
 			return
 		}
 		//真正进行取消关注操作
-		if err := logic.NewRelationDealer(background.Clear().TraceCaller()).DoCancelFollow(userID, req.ToUserID); err != nil {
+		if err := logic.NewRelationDealer(background).DoCancelFollow(userID, req.ToUserID); err != nil {
 			response.Error(c, http.StatusInternalServerError, code.ServeBusy)
-			logger.PrintLogWithCTX("取消关注用户操作失败:", err, background)
+			logger.PrintWithStack(err)
 			return
 		}
 		c.JSON(http.StatusOK, &response.RESP{
@@ -101,12 +101,12 @@ func FollowList(c *gin.Context) {
 		badFollowResponse(c, code.InvalidParam)
 		return
 	}
-	background := tracer.Background().TraceCaller()
+	background := tracer.Background()
 
 	userExist, err := logic.NewUserDealer(background).GetUserExistByID(req.UserID)
 	if err != nil {
 		badFollowResponse(c, code.ServeBusy)
-		logger.PrintLogWithCTX("查询用户是否存在失败", err, background)
+		logger.PrintWithStack(err)
 		return
 	}
 	if !userExist {
@@ -115,10 +115,10 @@ func FollowList(c *gin.Context) {
 	}
 	// 下面开始查询列表，获取账号主人的ID
 	currentUserID := c.GetString(middleware.CtxUserIDtxKey)
-	userMSG, err := logic.NewRelationDealer(background.Clear().TraceCaller()).GetFollowList(currentUserID, req)
+	userMSG, err := logic.NewRelationDealer(background).GetFollowList(currentUserID, req)
 	if err != nil {
 		badFollowResponse(c, code.ServeBusy)
-		logger.PrintLogWithCTX("查询关注列表出错:", err, background)
+		logger.PrintWithStack(err)
 		return
 	}
 	c.JSON(http.StatusOK, &model.FollowListResp{
@@ -134,12 +134,12 @@ func FansList(c *gin.Context) {
 		badFollowResponse(c, code.InvalidParam)
 		return
 	}
-	background := tracer.Background().TraceCaller()
+	background := tracer.Background()
 
 	userExist, err := logic.NewUserDealer(background).GetUserExistByID(req.UserID)
 	if err != nil {
 		badFollowResponse(c, code.ServeBusy)
-		logger.PrintLogWithCTX("查询用户是否存在失败", err, background)
+		logger.PrintWithStack(err)
 		return
 	}
 	if !userExist {
@@ -148,10 +148,10 @@ func FansList(c *gin.Context) {
 	}
 	// 下面开始查询粉丝列表，获取账号主人的ID
 	aUserID := c.GetString(middleware.CtxUserIDtxKey)
-	userMSG, err := logic.NewRelationDealer(background.Clear().TraceCaller()).GetFansList(aUserID, req)
+	userMSG, err := logic.NewRelationDealer(background).GetFansList(aUserID, req)
 	if err != nil {
 		badFollowResponse(c, code.ServeBusy)
-		logger.PrintLogWithCTX("查询关粉丝列表出错:", err, background)
+		logger.PrintWithStack(err)
 		return
 	}
 	c.JSON(http.StatusOK, &model.FollowListResp{

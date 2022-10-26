@@ -17,7 +17,5 @@
 # Go workspace file
 go.work
 *.yaml
-go.mod
-go.sum
 *.log
 .idea

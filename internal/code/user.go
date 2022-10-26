@@ -2,6 +2,8 @@ package code
 
 type ResCode int64
 
+const Success ResCode = 0
+
 const (
 	NeedLogin ResCode = 10000 + iota
 	InvalidToken
@@ -13,6 +15,8 @@ const (
 )
 
 var msgMAP = map[ResCode]string{
+	//  成功响应
+	Success: "success",
 	//=======用户===============================
 	NeedLogin:     "请登录后重试",
 	InvalidToken:  "无效token",

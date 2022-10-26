@@ -78,9 +78,9 @@ func InitLogger() {
 
 }
 
-func PrintLogWithCTX(errorMsg string, err error, ctx *tracer.TraceCtx) {
-	errorMsg += "  "
-	l.Error(errorMsg, zap.Error(err), zap.String("TracePath", ctx.ToString()))
+// PrintWithStack 打印带有堆栈信息的error日志，接口动态类型应为errors.withStack
+func PrintWithStack(err error) {
+	l.Error(err.Error(), zap.String("TracePath", tracer.FormatErr(err)))
 }
 
 func PrintLog(errorMsg string, err error) {

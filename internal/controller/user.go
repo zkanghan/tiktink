@@ -36,10 +36,11 @@ func UserLogin(c *gin.Context) {
 		return
 	}
 	//  查询数据库验证账号
-	background := tracer.Background().TraceCaller()
+	background := tracer.Background()
 	right, id, err := logic.NewUserDealer(background).CheckUser(user.UserName, user.Password)
 	if err != nil { //运行异常
-		badLoginResponse(c, code.ServeBusy, err.Error())
+		badLoginResponse(c, code.ServeBusy, code.ServeBusy.MSG())
+		logger.PrintWithStack(err)
 		return
 	}
 	if !right {
@@ -69,10 +70,10 @@ func UserRegister(c *gin.Context) {
 		badRegisterResponse(c, code.InvalidParam, code.InvalidParam.MSG())
 		return
 	}
-	background := tracer.Background().TraceCaller()
+	background := tracer.Background()
 	userExit, err := logic.NewUserDealer(background).GetUserExistByName(user.UserName)
 	if err != nil {
-		logger.PrintLogWithCTX("查询用户存在出错:", err, background)
+		logger.PrintWithStack(err)
 		badRegisterResponse(c, code.ServeBusy, code.ServeBusy.MSG())
 		return
 	}
@@ -80,9 +81,9 @@ func UserRegister(c *gin.Context) {
 		badRegisterResponse(c, code.UserExist, code.UserExist.MSG())
 		return
 	}
-	id, err := logic.NewUserDealer(background.Clear().TraceCaller()).CreateUser(user.UserName, user.Password)
+	id, err := logic.NewUserDealer(background).CreateUser(user.UserName, user.Password)
 	if err != nil {
-		logger.PrintLogWithCTX("创建用户出错", err, background)
+		logger.PrintWithStack(err)
 		badRegisterResponse(c, code.ServeBusy, code.ServeBusy.MSG())
 		return
 	}
@@ -107,10 +108,10 @@ func UserInformation(c *gin.Context) {
 		badUserInfoResp(c, code.InvalidParam)
 		return
 	}
-	background := tracer.Background().TraceCaller()
+	background := tracer.Background()
 	userExist, err := logic.NewUserDealer(background).GetUserExistByID(req.UserID)
 	if err != nil {
-		logger.PrintLogWithCTX("查询用户是否存在失败:", err, background)
+		logger.PrintWithStack(err)
 		badUserInfoResp(c, code.ServeBusy)
 		return
 	}
@@ -119,10 +120,10 @@ func UserInformation(c *gin.Context) {
 		return
 	}
 	userID := c.GetString(middleware.CtxUserIDtxKey)
-	userMsg, err := logic.NewUserDealer(background.Clear().TraceCaller()).GetUserInformation(req.UserID, userID)
+	userMsg, err := logic.NewUserDealer(background).GetUserInformation(req.UserID, userID)
 	if err != nil {
 		badUserInfoResp(c, code.ServeBusy)
-		logger.PrintLogWithCTX("查询用户信息错误：", err, background)
+		logger.PrintWithStack(err)
 		return
 	}
 	c.JSON(http.StatusOK, model.UserInfoResponse{

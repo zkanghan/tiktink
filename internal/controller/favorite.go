@@ -27,15 +27,15 @@ func FavoriteAction(c *gin.Context) {
 		response.Error(c, http.StatusBadRequest, code.InvalidParam)
 		return
 	}
-	background := tracer.Background().TraceCaller()
+	background := tracer.Background()
 	// 使用redis不要查询直接set
 	userID := c.GetString(middleware.CtxUserIDtxKey)
 
 	//  安全验证videoID是存在的
-	exsit, err := logic.NewVideoDealer(background.Clear()).GetIsVideoExist(req.VideoID)
+	exsit, err := logic.NewVideoDealer(background).GetIsVideoExist(req.VideoID)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, code.ServeBusy)
-		logger.PrintLogWithCTX("查询视频存在失败:", err, background)
+		logger.PrintWithStack(err)
 		return
 	}
 	if !exsit {
@@ -47,7 +47,7 @@ func FavoriteAction(c *gin.Context) {
 	err = logic.NewFavoriteDealer(background).SetRedisKey(userID, req.VideoID, strconv.Itoa(int(req.ActionType)))
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, code.ServeBusy)
-		logger.PrintLogWithCTX("redis点赞失败:", err, background)
+		logger.PrintWithStack(err)
 		return
 	}
 	c.JSON(http.StatusOK, response.RESP{
@@ -70,21 +70,21 @@ func FavoriteList(c *gin.Context) {
 		fmt.Println(err)
 		return
 	}
-	background := tracer.Background().TraceCaller()
+	background := tracer.Background()
 	exist, err := logic.NewUserDealer(background).GetUserExistByID(req.UserID)
 	if err != nil {
 		badRespFavoriteList(c, code.ServeBusy)
-		logger.PrintLogWithCTX("查询用户是否存在错误出错:", err, background)
+		logger.PrintWithStack(err)
 		return
 	}
 	if !exist {
 		badRespFavoriteList(c, code.UserNotExist)
 		return
 	}
-	videoList, err := logic.NewFavoriteDealer(background.Clear().TraceCaller()).GetMySQLFavoriteList(*req)
+	videoList, err := logic.NewFavoriteDealer(background).GetMySQLFavoriteList(*req)
 	if err != nil {
 		badRespFavoriteList(c, code.ServeBusy)
-		logger.PrintLogWithCTX("获取点赞列表出错:", err, background)
+		logger.PrintWithStack(err)
 		return
 	}
 	c.JSON(http.StatusOK, model.FavoriteListResp{

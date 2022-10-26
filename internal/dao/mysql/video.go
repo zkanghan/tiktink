@@ -3,6 +3,8 @@ package mysql
 import (
 	"tiktink/internal/model"
 	"tiktink/pkg/tracer"
+
+	"github.com/pkg/errors"
 )
 
 const (
@@ -15,12 +17,12 @@ type videoFunc interface {
 	QueryVideoByAuthorID(authorID string, pn int) ([]*model.VideoMSG, error)
 }
 
-type videoDealer struct {
-	Context *tracer.TraceCtx
-}
+type videoDealer struct{}
 
+func NewVideoDealer() videoFunc {
+	return &videoDealer{}
+}
 func (v *videoDealer) QueryVideoByAuthorID(authorID string, pn int) ([]*model.VideoMSG, error) {
-	v.Context.TraceCaller()
 	var videoMsgs []*model.VideoMSG
 	offset := (pn - 1) * videoPageRows
 	count := videoPageRows
@@ -29,29 +31,21 @@ func (v *videoDealer) QueryVideoByAuthorID(authorID string, pn int) ([]*model.Vi
 		"from `users` inner join `videos` on `videos`.`author_id`= `user_id`"+
 		"where `videos`.author_id = ? limit ?,?", authorID, offset, count).Scan(&videoMsgs).Error
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, tracer.FormatParam(authorID, pn))
 	}
 	return videoMsgs, nil
 }
 
 func (v *videoDealer) QueryVideoExist(videoID string) (bool, error) {
-	v.Context.TraceCaller()
 	cnt := new(int64)
 	err := db.Raw("select 1 from videos where video_id = ?", videoID).Scan(cnt).Error
 	if err != nil {
-		return false, err
+		return false, errors.Wrap(err, tracer.FormatParam(videoID))
 	}
 	return *cnt == 1, nil
 }
 
 func (v *videoDealer) PublishVideo(video *model.Video) error {
-	v.Context.TraceCaller()
 	err := db.Create(video).Error
-	return err
-}
-
-func NewVideoDealer(ctx *tracer.TraceCtx) videoFunc {
-	return &videoDealer{
-		Context: ctx,
-	}
+	return errors.Wrap(err, tracer.FormatParam(video))
 }

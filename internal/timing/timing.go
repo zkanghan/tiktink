@@ -6,8 +6,9 @@ import (
 	"tiktink/internal/model"
 	"tiktink/pkg/logger"
 	"tiktink/pkg/tools"
-	"tiktink/pkg/tracer"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 // SyncFavoriteKey 定时任务同步Redis Key
@@ -16,7 +17,7 @@ func SyncFavoriteKey() error {
 	dealer := redis.NewFavoriteDealer()
 	keys, err := dealer.GetFavoriteKeys()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "")
 	}
 	for _, key := range keys {
 		go func(s string) {
@@ -29,25 +30,24 @@ func SyncFavoriteKey() error {
 			if err = tools.MapToStruct(m, &fr); err != nil {
 				logger.PrintLog("", err)
 			}
-			ctx := tracer.Background()
 			//  查询是否关注
-			mysqlLiked, err := mysql.NewFavoriteDealer(ctx).QueryIsLiked(fr.UserID, fr.VideoID)
+			mysqlLiked, err := mysql.NewFavoriteDealer().QueryIsLiked(fr.UserID, fr.VideoID)
 			if err != nil {
-				logger.PrintLogWithCTX("", err, ctx)
+				logger.PrintWithStack(err)
 			}
 			//  业务逻辑判断
 			if fr.Status == redis.Liked && !mysqlLiked { // redis中以点赞而MySQL未点赞
-				if err = mysql.NewFavoriteDealer(ctx.Clear()).DoFavorite(fr.UserID, fr.VideoID); err != nil {
-					logger.PrintLogWithCTX("", err, ctx)
+				if err = mysql.NewFavoriteDealer().DoFavorite(fr.UserID, fr.VideoID); err != nil {
+					logger.PrintWithStack(err)
 				}
 			} else if fr.Status == redis.Unliked && mysqlLiked { //redis 中取消点赞而MySQL已点赞
-				if err = mysql.NewFavoriteDealer(ctx.Clear()).CancelFavorite(fr.UserID, fr.VideoID); err != nil {
-					logger.PrintLogWithCTX("", err, ctx)
+				if err = mysql.NewFavoriteDealer().CancelFavorite(fr.UserID, fr.VideoID); err != nil {
+					logger.PrintWithStack(err)
 				}
 			}
 			// 判断完毕删除键
 			if err = dealer.DeleteFavoriteKey(fr); err != nil {
-				logger.PrintLog("", err)
+				logger.PrintWithStack(err)
 			}
 		}(key)
 	}

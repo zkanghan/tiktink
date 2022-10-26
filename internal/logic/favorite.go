@@ -24,23 +24,19 @@ func NewFavoriteDealer(ctx *tracer.TraceCtx) *favoriteDealer {
 }
 
 func (f *favoriteDealer) GetMySQLIsLiked(userID string, videoID string) (bool, error) {
-	f.Context.TraceCaller()
-	return mysql.NewFavoriteDealer(f.Context).QueryIsLiked(userID, videoID)
+	return mysql.NewFavoriteDealer().QueryIsLiked(userID, videoID)
 }
 
 func (f *favoriteDealer) DoMySQLFavorite(userID string, videoID string) error {
-	f.Context.TraceCaller()
-	return mysql.NewFavoriteDealer(f.Context).DoFavorite(userID, videoID)
+	return mysql.NewFavoriteDealer().DoFavorite(userID, videoID)
 }
 
 func (f *favoriteDealer) CancelMySQLFavorite(userID string, videoID string) error {
-	f.Context.TraceCaller()
-	return mysql.NewFavoriteDealer(f.Context).CancelFavorite(userID, videoID)
+	return mysql.NewFavoriteDealer().CancelFavorite(userID, videoID)
 }
 
 func (f *favoriteDealer) GetMySQLFavoriteList(req model.FavoriteListReq) ([]*model.VideoMSG, error) {
-	f.Context.TraceCaller()
-	videoMsgS, err := mysql.NewFavoriteDealer(f.Context).QueryFavoriteList(req.UserID, req.PageNumber)
+	videoMsgS, err := mysql.NewFavoriteDealer().QueryFavoriteList(req.UserID, req.PageNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +47,7 @@ func (f *favoriteDealer) GetMySQLFavoriteList(req model.FavoriteListReq) ([]*mod
 		toUserIDs = append(toUserIDs, video.UserMSG.UserID)
 	}
 	//  获取user在toUserID中关注了哪些
-	followedUsers, err := mysql.NewRelationDealer(f.Context).QueryListIsFollow(req.UserID, toUserIDs)
+	followedUsers, err := mysql.NewRelationDealer().QueryListIsFollow(req.UserID, toUserIDs)
 	if err != nil {
 		return []*model.VideoMSG{}, err
 	}

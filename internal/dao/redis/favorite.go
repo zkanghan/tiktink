@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"tiktink/internal/model"
 	"tiktink/pkg/tools"
+	"tiktink/pkg/tracer"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 const (
@@ -38,30 +41,41 @@ func GetFavoriteKey(m model.FavoriteRedis) string {
 
 // DeleteFavoriteKey 删除redis的key
 func (f *favoriteDealer) DeleteFavoriteKey(m model.FavoriteRedis) error {
-	key := GetFavoriteKey(m)
-	return redisDB.Del(key).Err()
+	err := redisDB.Del(GetFavoriteKey(m)).Err()
+	if err != nil {
+		return errors.Wrap(err, tracer.FormatParam(m))
+	}
+	return nil
 }
 
 // SetFavoriteKey 设置对应key的value
 func (f *favoriteDealer) SetFavoriteKey(fr model.FavoriteRedis) error {
 	m, err := tools.StructToMap(fr)
 	if err != nil {
-		return err
+		return errors.Wrap(err, tracer.FormatParam(fr))
 	}
 	key := GetFavoriteKey(fr)
 	if err = redisDB.HMSet(key, m).Err(); err != nil {
-		return err
+		return errors.Wrap(err, tracer.FormatParam(fr))
 	}
 	if err = redisDB.Expire(key, expiration).Err(); err != nil {
-		return err
+		return errors.Wrap(err, tracer.FormatParam(fr))
 	}
 	return nil
 }
 
 func (f *favoriteDealer) GetFavoriteKeys() ([]string, error) {
-	return redisDB.Keys(favoriteKey + "*").Result()
+	res, err := redisDB.Keys(favoriteKey + "*").Result()
+	if err != nil {
+		return []string{}, errors.Wrap(err, "")
+	}
+	return res, nil
 }
 
 func (f *favoriteDealer) GetFavoriteVal(key string) (map[string]string, error) {
-	return redisDB.HGetAll(key).Result()
+	res, err := redisDB.HGetAll(key).Result()
+	if err != nil {
+		return map[string]string{}, errors.Wrap(err, tracer.FormatParam(key))
+	}
+	return res, nil
 }
